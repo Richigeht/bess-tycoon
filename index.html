@@ -141,8 +141,9 @@
             const loadOrder = this.resolveDependencies();
             for (const pluginId of loadOrder) {
               const PluginClass = this.plugins.get(pluginId);
+              if (this.loadedPlugins.includes(PluginClass)) continue;
               if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) {
-                console.log(`Plugin ${pluginId} not yet unlocked`);
+                console.log(`Plugin ${pluginId} not yet unlocked (need: ${PluginClass.manifest.description})`);
                 continue;
               }
               try {
@@ -153,6 +154,23 @@
                 console.error(`Failed to load plugin ${pluginId}:`, error);
               }
             }
+          }
+
+          // Check for newly-unlocked plugins and load them
+          static checkAndLoadNewPlugins(gameEngine, gameState) {
+            for (const [pluginId, PluginClass] of this.plugins) {
+              if (this.loadedPlugins.includes(PluginClass)) continue;
+              if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) continue;
+              try {
+                PluginClass.init(gameEngine);
+                this.loadedPlugins.push(PluginClass);
+                console.log(`Dynamically loaded plugin: ${PluginClass.manifest.name}`);
+                return PluginClass.manifest.name; // Return name for event log
+              } catch (error) {
+                console.error(`Failed to load plugin ${pluginId}:`, error);
+              }
+            }
+            return null;
           }
 
           static resolveDependencies() {
@@ -302,20 +320,30 @@
           try {
             const resp = await fetch('plugins/manifest.json');
             const data = await resp.json();
+            console.log(`[Plugins] Manifest loaded: ${data.plugins?.length || 0} plugin(s) listed`);
             if (data.plugins && data.plugins.length > 0) {
               for (const file of data.plugins) {
+                const sizeBefore = PluginRegistry.plugins.size;
                 await new Promise((resolve) => {
                   const script = document.createElement('script');
                   script.src = `plugins/${file}`;
-                  script.onload = resolve;
-                  script.onerror = () => { console.warn(`Plugin ${file} failed to load`); resolve(); };
+                  script.onload = () => {
+                    if (PluginRegistry.plugins.size > sizeBefore) {
+                      console.log(`[Plugins] ${file} loaded and registered successfully`);
+                    } else {
+                      console.warn(`[Plugins] ${file} loaded but did not register - check for JS errors in console`);
+                    }
+                    resolve();
+                  };
+                  script.onerror = () => { console.error(`[Plugins] Failed to load script: plugins/${file}`); resolve(); };
                   document.head.appendChild(script);
                 });
               }
             }
           } catch (e) {
-            console.log('No plugins manifest found, skipping plugin loading');
+            console.warn('[Plugins] Could not load manifest.json -', e.message, '(are you using a local server? file:// won\'t work)');
           }
+          console.log(`[Plugins] ${PluginRegistry.plugins.size} plugin(s) registered, attempting to load...`);
           PluginRegistry.loadAll(gameEngine, DEFAULT_GAME_STATE);
         }
 
@@ -403,6 +431,8 @@
                   events: [{ text: '📁 Game loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
                 }));
                 PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
+                // Re-check plugin unlock conditions with restored state
+                PluginRegistry.loadAll(gameEngine, newState);
                 setLastSave(new Date(saveData.timestamp));
               }
             } catch (error) {
@@ -528,6 +558,12 @@
                 // Plugin tick hooks
                 gameEngine.emit('tick', state, 1.0);
                 PluginRegistry.triggerHook('onTick', state, 1.0);
+
+                // Check for newly-unlocked plugins
+                const newPlugin = PluginRegistry.checkAndLoadNewPlugins(gameEngine, state);
+                if (newPlugin) {
+                  state.events = [{ text: `🔌 Plugin unlocked: ${newPlugin}!`, time: Date.now() }, ...state.events.slice(0, 9)];
+                }
 
                 // Random events
                 if (Math.random() < 0.01) {
@@ -728,7 +764,7 @@
                 owned: isOwned ? 1 : 0,
                 effect: upg.description || '',
                 debt: 0,
-                tooltip: upg.description || '',
+                tooltip: '',
                 oneTime: upg.oneTime || false,
                 isPlugin: true,
                 upgradeDef: upg,
@@ -1135,8 +1171,9 @@
                       {PluginRegistry.plugins.size === 0 ? (
                         <div className="bg-slate-900 p-6 rounded text-center">
                           <div className="text-4xl mb-2">📦</div>
-                          <p className="text-gray-400">No plugins installed yet.</p>
-                          <p className="text-gray-500 text-sm mt-1">Add plugin files to the plugins/ directory and list them in plugins/manifest.json</p>
+                          <p className="text-gray-400">No plugins detected.</p>
+                          <p className="text-gray-500 text-sm mt-1">Make sure you're running from a local server (npx serve .) — file:// won't load plugins.</p>
+                          <p className="text-gray-500 text-sm mt-1">Check the browser console for [Plugins] messages.</p>
                         </div>
                       ) : (
                         <div className="space-y-3">

@@ -10,6 +10,7 @@ class Phase2ScaleUpPlugin {
     author: 'BESS Tycoon Team',
     description: 'Regulatory compliance, investor confidence, certifications, consultants, and insurance nightmares.',
     unlockCondition: function(gameState) { return gameState.batteries >= 1000; },
+    unlockHint: 'Reach 1,000 batteries',
     dependencies: [],
     conflicts: [],
   };

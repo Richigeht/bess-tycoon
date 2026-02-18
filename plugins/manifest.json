@@ -1,0 +1,3 @@
+{
+  "plugins": ["phase-2-scale-up.js", "phase-3-grid-wars.js"]
+}

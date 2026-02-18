@@ -115,37 +115,269 @@
             </svg>
         );
 
-        const BESSTycoon = () => {
-          const [money, setMoney] = useState(10000);
-          const [batteries, setBatteries] = useState(0);
-          const [batteriesPerSecond, setBatteriesPerSecond] = useState(0);
-          const [techDebt, setTechDebt] = useState(0);
-          const [coffee, setCoffee] = useState(0);
-          const [clickPower, setClickPower] = useState(1);
-          const [activeTab, setActiveTab] = useState('production');
-          const [lastSave, setLastSave] = useState(null);
-          const [saveStatus, setSaveStatus] = useState('');
-          const [showExportImport, setShowExportImport] = useState(false);
-          
-          const [upgrades, setUpgrades] = useState({
+        // === Plugin System ===
+
+        class PluginRegistry {
+          static plugins = new Map();
+          static loadedPlugins = [];
+
+          static register(PluginClass) {
+            const manifest = PluginClass.manifest;
+            if (!manifest || !manifest.id) {
+              console.error('Plugin missing required manifest.id');
+              return;
+            }
+            for (const [id, existing] of this.plugins) {
+              if (manifest.conflicts?.includes(id) || existing.manifest.conflicts?.includes(manifest.id)) {
+                console.warn(`Plugin conflict: ${manifest.id} conflicts with ${id}`);
+                return;
+              }
+            }
+            this.plugins.set(manifest.id, PluginClass);
+            console.log(`Registered plugin: ${manifest.name} v${manifest.version}`);
+          }
+
+          static loadAll(gameEngine, gameState) {
+            const loadOrder = this.resolveDependencies();
+            for (const pluginId of loadOrder) {
+              const PluginClass = this.plugins.get(pluginId);
+              if (this.loadedPlugins.includes(PluginClass)) continue;
+              if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) {
+                console.log(`Plugin ${pluginId} not yet unlocked (need: ${PluginClass.manifest.description})`);
+                continue;
+              }
+              try {
+                PluginClass.init(gameEngine);
+                this.loadedPlugins.push(PluginClass);
+                console.log(`Loaded plugin: ${PluginClass.manifest.name}`);
+              } catch (error) {
+                console.error(`Failed to load plugin ${pluginId}:`, error);
+              }
+            }
+          }
+
+          // Check for newly-unlocked plugins and load them
+          static checkAndLoadNewPlugins(gameEngine, gameState) {
+            for (const [pluginId, PluginClass] of this.plugins) {
+              if (this.loadedPlugins.includes(PluginClass)) continue;
+              if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) continue;
+              try {
+                PluginClass.init(gameEngine);
+                this.loadedPlugins.push(PluginClass);
+                console.log(`Dynamically loaded plugin: ${PluginClass.manifest.name}`);
+                return PluginClass.manifest.name; // Return name for event log
+              } catch (error) {
+                console.error(`Failed to load plugin ${pluginId}:`, error);
+              }
+            }
+            return null;
+          }
+
+          static resolveDependencies() {
+            const sorted = [];
+            const visited = new Set();
+            const visit = (pluginId) => {
+              if (visited.has(pluginId)) return;
+              visited.add(pluginId);
+              const plugin = this.plugins.get(pluginId);
+              if (plugin?.manifest.dependencies) {
+                for (const depId of plugin.manifest.dependencies) {
+                  visit(depId);
+                }
+              }
+              sorted.push(pluginId);
+            };
+            for (const pluginId of this.plugins.keys()) {
+              visit(pluginId);
+            }
+            return sorted;
+          }
+
+          static unload(pluginId) {
+            const PluginClass = this.plugins.get(pluginId);
+            if (PluginClass && PluginClass.cleanup) {
+              PluginClass.cleanup();
+            }
+            this.loadedPlugins = this.loadedPlugins.filter(p => p.manifest.id !== pluginId);
+            console.log(`Unloaded plugin: ${pluginId}`);
+          }
+
+          static triggerHook(hookName, ...args) {
+            for (const PluginClass of this.loadedPlugins) {
+              if (typeof PluginClass[hookName] === 'function') {
+                try {
+                  PluginClass[hookName](...args);
+                } catch (error) {
+                  console.error(`Error in ${PluginClass.manifest.id}.${hookName}:`, error);
+                }
+              }
+            }
+          }
+        }
+
+        class GameEngine {
+          constructor() {
+            this.resources = new Map();
+            this.upgrades = new Map();
+            this.events = new Map();
+            this.tabs = new Map();
+            this.hooks = new Map();
+          }
+
+          addResource(resourceDef) {
+            this.resources.set(resourceDef.id, resourceDef);
+          }
+
+          addUpgrade(upgradeDef) {
+            const category = upgradeDef.category || 'core';
+            if (!this.upgrades.has(category)) {
+              this.upgrades.set(category, []);
+            }
+            this.upgrades.get(category).push(upgradeDef);
+          }
+
+          addEvent(eventDef) {
+            this.events.set(eventDef.id, eventDef);
+          }
+
+          addTab(tabDef) {
+            this.tabs.set(tabDef.id, tabDef);
+          }
+
+          on(hookName, callback) {
+            if (!this.hooks.has(hookName)) {
+              this.hooks.set(hookName, []);
+            }
+            this.hooks.get(hookName).push(callback);
+          }
+
+          emit(hookName, ...args) {
+            const callbacks = this.hooks.get(hookName) || [];
+            for (const callback of callbacks) {
+              callback(...args);
+            }
+          }
+
+          triggerEvent(eventId) {
+            const event = this.events.get(eventId);
+            if (event) {
+              this.emit('eventTriggered', event);
+            }
+          }
+        }
+
+        const gameEngine = new GameEngine();
+        window.PluginRegistry = PluginRegistry;
+        window.gameEngine = gameEngine;
+
+        // === Core Resource Definitions ===
+        const CORE_RESOURCE_IDS = ['money', 'batteries', 'batteriesPerSecond', 'techDebt', 'coffee'];
+
+        gameEngine.addResource({ id: 'money', name: 'Money', icon: '$', startValue: 10000, displayPrecision: 0, coreKey: 'money' });
+        gameEngine.addResource({ id: 'batteries', name: 'Batteries', icon: '🔋', startValue: 0, displayPrecision: 0, coreKey: 'batteries' });
+        gameEngine.addResource({ id: 'batteriesPerSecond', name: 'Production', icon: '📈', startValue: 0, displayPrecision: 1, suffix: '/s', coreKey: 'batteriesPerSecond' });
+        gameEngine.addResource({ id: 'techDebt', name: 'Tech Debt', icon: '⚠️', startValue: 0, displayPrecision: 0, coreKey: 'techDebt' });
+        gameEngine.addResource({ id: 'coffee', name: 'Coffee Today', icon: '☕', startValue: 0, displayPrecision: 0, coreKey: 'coffee' });
+
+        // === Core Tab Definitions ===
+        gameEngine.addTab({ id: 'production', name: 'Production', icon: '🔋', unlockCondition: () => true, core: true });
+        gameEngine.addTab({ id: 'monitoring', name: 'Monitoring', icon: '📊', unlockCondition: (gs) => gs.grafanaUnlocked, core: true });
+        gameEngine.addTab({ id: 'plugins', name: 'Plugins', icon: '🔌', unlockCondition: () => true, core: true });
+
+        // === Default Game State ===
+        const DEFAULT_GAME_STATE = {
+          money: 10000,
+          batteries: 0,
+          batteriesPerSecond: 0,
+          techDebt: 0,
+          coffee: 0,
+          clickPower: 1,
+          upgrades: {
             intern: 0,
             autoAssembler: 0,
             skipTesting: false,
             alibabaOrder: false,
             ignoreCerts: false,
             grafanaLicense: false,
-          });
-
-          const [events, setEvents] = useState([]);
-          const [achievements, setAchievements] = useState([]);
-          const [grafanaUnlocked, setGrafanaUnlocked] = useState(false);
-
-          const [metrics, setMetrics] = useState({
+          },
+          events: [],
+          achievements: [],
+          grafanaUnlocked: false,
+          metrics: {
             temperature: 25,
             voltage: 48.2,
             soc: 87,
             alerts: 0,
-          });
+          },
+          resources: {},
+          certifications: {},
+          multipliers: { productionSpeed: 1, usSalesPrice: 1 },
+          pluginData: {},
+        };
+
+        // === Plugin Loading ===
+        async function loadPluginFiles() {
+          try {
+            const resp = await fetch('plugins/manifest.json');
+            const data = await resp.json();
+            console.log(`[Plugins] Manifest loaded: ${data.plugins?.length || 0} plugin(s) listed`);
+            if (data.plugins && data.plugins.length > 0) {
+              for (const file of data.plugins) {
+                const sizeBefore = PluginRegistry.plugins.size;
+                await new Promise((resolve) => {
+                  const script = document.createElement('script');
+                  script.src = `plugins/${file}?v=${Date.now()}`;
+                  script.onload = () => {
+                    if (PluginRegistry.plugins.size > sizeBefore) {
+                      console.log(`[Plugins] ${file} loaded and registered successfully`);
+                    } else {
+                      console.warn(`[Plugins] ${file} loaded but did not register - check for JS errors in console`);
+                    }
+                    resolve();
+                  };
+                  script.onerror = () => { console.error(`[Plugins] Failed to load script: plugins/${file}`); resolve(); };
+                  document.head.appendChild(script);
+                });
+              }
+            }
+          } catch (e) {
+            console.warn('[Plugins] Could not load manifest.json -', e.message, '(are you using a local server? file:// won\'t work)');
+          }
+          console.log(`[Plugins] ${PluginRegistry.plugins.size} plugin(s) registered, attempting to load...`);
+          PluginRegistry.loadAll(gameEngine, DEFAULT_GAME_STATE);
+        }
+
+        // === Save Data Migration ===
+        function migrateSaveData(raw) {
+          if (raw.version === '2.0') return raw;
+          // Migrate from v1.0 / no-version flat format
+          return {
+            version: '2.0',
+            money: raw.money ?? 10000,
+            batteries: raw.batteries ?? 0,
+            batteriesPerSecond: raw.batteriesPerSecond ?? 0,
+            techDebt: raw.techDebt ?? 0,
+            coffee: raw.coffee ?? 0,
+            clickPower: raw.clickPower ?? 1,
+            upgrades: raw.upgrades ?? DEFAULT_GAME_STATE.upgrades,
+            events: raw.events ?? [],
+            achievements: raw.achievements ?? [],
+            grafanaUnlocked: raw.grafanaUnlocked ?? false,
+            metrics: raw.metrics ?? DEFAULT_GAME_STATE.metrics,
+            resources: raw.resources ?? {},
+            certifications: raw.certifications ?? {},
+            multipliers: raw.multipliers ?? { productionSpeed: 1, usSalesPrice: 1 },
+            pluginData: raw.pluginData ?? {},
+            timestamp: raw.timestamp,
+          };
+        }
+
+        const BESSTycoon = () => {
+          const [gameState, setGameState] = useState({ ...DEFAULT_GAME_STATE });
+          const [activeTab, setActiveTab] = useState('production');
+          const [lastSave, setLastSave] = useState(null);
+          const [saveStatus, setSaveStatus] = useState('');
+          const [showExportImport, setShowExportImport] = useState(false);
 
           // Load saved game on mount
           useEffect(() => {
@@ -157,28 +389,20 @@
             const saveInterval = setInterval(() => {
               saveGame(true);
             }, 10000);
-            
             return () => clearInterval(saveInterval);
-          }, [money, batteries, batteriesPerSecond, techDebt, coffee, clickPower, upgrades, events, achievements, grafanaUnlocked, metrics]);
+          }, [gameState]);
 
           // Save game using localStorage
           const saveGame = (isAuto = false) => {
             try {
               const saveData = {
-                money,
-                batteries,
-                batteriesPerSecond,
-                techDebt,
-                coffee,
-                clickPower,
-                upgrades,
-                events: events.slice(0, 10),
-                achievements,
-                grafanaUnlocked,
-                metrics,
+                ...gameState,
+                events: gameState.events.slice(0, 10),
+                version: '2.0',
                 timestamp: Date.now(),
+                pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
               };
-              
+              PluginRegistry.triggerHook('onBeforeSave', saveData);
               localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
               setLastSave(new Date());
               setSaveStatus(isAuto ? '💾 Auto-saved' : '✅ Game saved!');
@@ -194,20 +418,22 @@
             try {
               const saveString = localStorage.getItem('bess-tycoon-save');
               if (saveString) {
-                const saveData = JSON.parse(saveString);
-                setMoney(saveData.money || 10000);
-                setBatteries(saveData.batteries || 0);
-                setBatteriesPerSecond(saveData.batteriesPerSecond || 0);
-                setTechDebt(saveData.techDebt || 0);
-                setCoffee(saveData.coffee || 0);
-                setClickPower(saveData.clickPower || 1);
-                setUpgrades(saveData.upgrades || {});
-                setEvents(saveData.events || []);
-                setAchievements(saveData.achievements || []);
-                setGrafanaUnlocked(saveData.grafanaUnlocked || false);
-                setMetrics(saveData.metrics || { temperature: 25, voltage: 48.2, soc: 87, alerts: 0 });
+                const raw = JSON.parse(saveString);
+                const saveData = migrateSaveData(raw);
+                const newState = { ...DEFAULT_GAME_STATE };
+                for (const key of Object.keys(DEFAULT_GAME_STATE)) {
+                  if (saveData[key] !== undefined) {
+                    newState[key] = saveData[key];
+                  }
+                }
+                setGameState(prev => ({
+                  ...newState,
+                  events: [{ text: '📁 Game loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
+                }));
+                PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
+                // Re-check plugin unlock conditions with restored state
+                PluginRegistry.loadAll(gameEngine, newState);
                 setLastSave(new Date(saveData.timestamp));
-                addEvent('📁 Game loaded successfully!');
               }
             } catch (error) {
               console.error('Load failed:', error);
@@ -229,21 +455,13 @@
           // Export save
           const exportSave = () => {
             const saveData = {
-              money,
-              batteries,
-              batteriesPerSecond,
-              techDebt,
-              coffee,
-              clickPower,
-              upgrades,
-              events: events.slice(0, 10),
-              achievements,
-              grafanaUnlocked,
-              metrics,
+              ...gameState,
+              events: gameState.events.slice(0, 10),
+              version: '2.0',
               timestamp: Date.now(),
-              version: '1.0',
+              pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
             };
-            
+            PluginRegistry.triggerHook('onBeforeSave', saveData);
             const saveString = JSON.stringify(saveData);
             const blob = new Blob([saveString], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
@@ -254,7 +472,6 @@
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
-            
             setSaveStatus('✅ Save exported!');
             setTimeout(() => setSaveStatus(''), 2000);
           };
@@ -263,32 +480,27 @@
           const importSave = (event) => {
             const file = event.target.files[0];
             if (!file) return;
-            
             const reader = new FileReader();
             reader.onload = (e) => {
               try {
-                const saveData = JSON.parse(e.target.result);
-                
-                if (!saveData.version || typeof saveData.money !== 'number') {
+                const raw = JSON.parse(e.target.result);
+                if (typeof raw.money !== 'number') {
                   throw new Error('Invalid save file');
                 }
-                
-                setMoney(saveData.money || 10000);
-                setBatteries(saveData.batteries || 0);
-                setBatteriesPerSecond(saveData.batteriesPerSecond || 0);
-                setTechDebt(saveData.techDebt || 0);
-                setCoffee(saveData.coffee || 0);
-                setClickPower(saveData.clickPower || 1);
-                setUpgrades(saveData.upgrades || {});
-                setEvents(saveData.events || []);
-                setAchievements(saveData.achievements || []);
-                setGrafanaUnlocked(saveData.grafanaUnlocked || false);
-                setMetrics(saveData.metrics || { temperature: 25, voltage: 48.2, soc: 87, alerts: 0 });
-                
+                const saveData = migrateSaveData(raw);
+                const newState = { ...DEFAULT_GAME_STATE };
+                for (const key of Object.keys(DEFAULT_GAME_STATE)) {
+                  if (saveData[key] !== undefined) {
+                    newState[key] = saveData[key];
+                  }
+                }
+                setGameState(prev => ({
+                  ...newState,
+                  events: [{ text: '📥 Save file loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
+                }));
+                PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
                 localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
-                
                 setSaveStatus('✅ Save imported!');
-                addEvent('📥 Save file loaded successfully!');
                 setShowExportImport(false);
                 setTimeout(() => setSaveStatus(''), 2000);
               } catch (error) {
@@ -301,75 +513,153 @@
             event.target.value = '';
           };
 
-          // Game loop
+          // Game loop - tick envelope pattern
           useEffect(() => {
             const interval = setInterval(() => {
-              setBatteries(prev => prev + batteriesPerSecond);
-              setMoney(prev => prev + (batteriesPerSecond * 10));
-              
-              setMetrics(prev => ({
-                temperature: Math.max(20, Math.min(60, prev.temperature + (Math.random() - 0.5) * 2)),
-                voltage: Math.max(44, Math.min(52, prev.voltage + (Math.random() - 0.5) * 0.2)),
-                soc: Math.max(0, Math.min(100, prev.soc + (Math.random() - 0.5) * 3)),
-                alerts: Math.random() < 0.05 ? prev.alerts + 1 : prev.alerts,
-              }));
-              
-              if (Math.random() < 0.01) {
-                triggerRandomEvent();
-              }
+              setGameState(prev => {
+                const state = {
+                  ...prev,
+                  resources: { ...prev.resources },
+                  metrics: { ...prev.metrics },
+                  multipliers: { ...prev.multipliers },
+                  certifications: { ...prev.certifications },
+                  pluginData: { ...prev.pluginData },
+                };
+
+                // Recalculate production
+                let bps = 0;
+                bps += state.upgrades.intern * 0.5;
+                bps += state.upgrades.autoAssembler * 2;
+                if (state.upgrades.skipTesting) bps *= 1.5;
+                state.multipliers = { ...state.multipliers };
+                gameEngine.emit('calculateProduction', state);
+                bps *= state.multipliers.productionSpeed;
+                state.batteriesPerSecond = bps;
+
+                // Core production
+                state.batteries += state.batteriesPerSecond;
+                state.money += state.batteriesPerSecond * 10;
+
+                // Metrics
+                state.metrics = {
+                  temperature: Math.max(20, Math.min(60, state.metrics.temperature + (Math.random() - 0.5) * 2)),
+                  voltage: Math.max(44, Math.min(52, state.metrics.voltage + (Math.random() - 0.5) * 0.2)),
+                  soc: Math.max(0, Math.min(100, state.metrics.soc + (Math.random() - 0.5) * 3)),
+                  alerts: Math.random() < 0.05 ? state.metrics.alerts + 1 : state.metrics.alerts,
+                };
+
+                // Initialize plugin resources if needed
+                for (const [id, def] of gameEngine.resources) {
+                  if (state.resources[id] === undefined && !CORE_RESOURCE_IDS.includes(id)) {
+                    state.resources[id] = def.startValue || 0;
+                  }
+                }
+
+                // Plugin tick hooks
+                gameEngine.emit('tick', state, 1.0);
+                PluginRegistry.triggerHook('onTick', state, 1.0);
+
+                // Check for newly-unlocked plugins
+                const newPlugin = PluginRegistry.checkAndLoadNewPlugins(gameEngine, state);
+                if (newPlugin) {
+                  state.events = [{ text: `🔌 Plugin unlocked: ${newPlugin}!`, time: Date.now() }, ...state.events.slice(0, 9)];
+                }
+
+                // Random events
+                if (Math.random() < 0.01) {
+                  const eventText = getRandomEvent(state);
+                  state.events = [{ text: eventText, time: Date.now() }, ...state.events.slice(0, 9)];
+                }
+
+                return state;
+              });
             }, 1000);
 
             return () => clearInterval(interval);
-          }, [batteriesPerSecond]);
-
-          useEffect(() => {
-            let bps = 0;
-            bps += upgrades.intern * 0.5;
-            bps += upgrades.autoAssembler * 2;
-            if (upgrades.skipTesting) bps *= 1.5;
-            setBatteriesPerSecond(bps);
-          }, [upgrades]);
+          }, []);
 
           const handleClick = () => {
-            setBatteries(prev => prev + clickPower);
-            setMoney(prev => prev + (clickPower * 10));
-            setCoffee(prev => prev + 0.1);
+            setGameState(prev => ({
+              ...prev,
+              batteries: prev.batteries + prev.clickPower,
+              money: prev.money + (prev.clickPower * 10),
+              coffee: prev.coffee + 0.1,
+            }));
           };
 
-          const buyUpgrade = (upgrade, cost, debtCost = 0) => {
-            if (money >= cost) {
-              setMoney(prev => prev - cost);
-              setTechDebt(prev => prev + debtCost);
-              
-              if (upgrade === 'intern') {
-                setUpgrades(prev => ({ ...prev, intern: prev.intern + 1 }));
-                addEvent("Hired intern! They work for equity and pizza. 🍕");
-              } else if (upgrade === 'autoAssembler') {
-                setUpgrades(prev => ({ ...prev, autoAssembler: prev.autoAssembler + 1 }));
-                addEvent("Auto-assembler online! Productivity go brrrr 📈");
-              } else if (upgrade === 'skipTesting') {
-                setUpgrades(prev => ({ ...prev, skipTesting: true }));
-                addEvent("QA is for cowards! +50% speed! 🚀");
-                checkAchievement("whats-qa", "What's QA?", "Skip testing phase");
-              } else if (upgrade === 'alibabaOrder') {
-                setUpgrades(prev => ({ ...prev, alibabaOrder: true }));
-                setClickPower(prev => prev * 2);
-                addEvent("Bulk order from Alibaba! Datasheets are... creative. 📦");
-              } else if (upgrade === 'ignoreCerts') {
-                setUpgrades(prev => ({ ...prev, ignoreCerts: true }));
-                addEvent("Certifications are just suggestions, right? 🤷");
-                checkAchievement("yolo", "YOLO Engineering", "Ignore all safety certifications");
-              } else if (upgrade === 'grafanaLicense') {
-                setUpgrades(prev => ({ ...prev, grafanaLicense: true }));
-                setGrafanaUnlocked(true);
-                addEvent("🎉 Grafana unlocked! Time to make dashboards nobody understands!");
-                checkAchievement("pretty-graphs", "Pretty Graphs", "Unlock monitoring suite");
+          const buyUpgrade = (upgradeId, cost, debtCost = 0) => {
+            setGameState(prev => {
+              if (prev.money < cost) return prev;
+              const state = { ...prev, money: prev.money - cost, techDebt: prev.techDebt + debtCost, upgrades: { ...prev.upgrades } };
+              let eventText = '';
+              let achievement = null;
+
+              if (upgradeId === 'intern') {
+                state.upgrades.intern = state.upgrades.intern + 1;
+                eventText = "Hired intern! They work for equity and pizza. 🍕";
+              } else if (upgradeId === 'autoAssembler') {
+                state.upgrades.autoAssembler = state.upgrades.autoAssembler + 1;
+                eventText = "Auto-assembler online! Productivity go brrrr 📈";
+              } else if (upgradeId === 'skipTesting') {
+                state.upgrades.skipTesting = true;
+                eventText = "QA is for cowards! +50% speed! 🚀";
+                achievement = { id: "whats-qa", name: "What's QA?", description: "Skip testing phase" };
+              } else if (upgradeId === 'alibabaOrder') {
+                state.upgrades.alibabaOrder = true;
+                state.clickPower = state.clickPower * 2;
+                eventText = "Bulk order from Alibaba! Datasheets are... creative. 📦";
+              } else if (upgradeId === 'ignoreCerts') {
+                state.upgrades.ignoreCerts = true;
+                eventText = "Certifications are just suggestions, right? 🤷";
+                achievement = { id: "yolo", name: "YOLO Engineering", description: "Ignore all safety certifications" };
+              } else if (upgradeId === 'grafanaLicense') {
+                state.upgrades.grafanaLicense = true;
+                state.grafanaUnlocked = true;
+                eventText = "🎉 Grafana unlocked! Time to make dashboards nobody understands!";
+                achievement = { id: "pretty-graphs", name: "Pretty Graphs", description: "Unlock monitoring suite" };
               }
-            }
+
+              if (eventText) {
+                state.events = [{ text: eventText, time: Date.now() }, ...state.events.slice(0, 9)];
+              }
+              if (achievement && !state.achievements.find(a => a.id === achievement.id)) {
+                state.achievements = [...state.achievements, achievement];
+                state.events = [{ text: `🏆 Achievement: ${achievement.name}`, time: Date.now() }, ...state.events.slice(0, 9)];
+              }
+
+              gameEngine.emit('upgradePurchased', state, upgradeId);
+              return state;
+            });
           };
 
-          const triggerRandomEvent = () => {
-            const events = [
+          // Buy a plugin-registered upgrade
+          const buyPluginUpgrade = (upgradeDef) => {
+            setGameState(prev => {
+              const costs = upgradeDef.cost || {};
+              if (costs.money && prev.money < costs.money) return prev;
+              const state = { ...prev, resources: { ...prev.resources }, certifications: { ...prev.certifications }, multipliers: { ...prev.multipliers } };
+              if (costs.money) state.money -= costs.money;
+              for (const [resId, amount] of Object.entries(costs)) {
+                if (resId !== 'money' && state.resources[resId] !== undefined) {
+                  if (state.resources[resId] < amount) return prev;
+                  state.resources[resId] -= amount;
+                }
+              }
+              if (upgradeDef.effect) {
+                upgradeDef.effect(state);
+              }
+              if (upgradeDef.oneTime) {
+                state.pluginData = { ...state.pluginData, [`upgrade_${upgradeDef.id}`]: true };
+              } else {
+                const countKey = `upgrade_count_${upgradeDef.id}`;
+                state.pluginData = { ...state.pluginData, [countKey]: (state.pluginData[countKey] || 0) + 1 };
+              }
+              return state;
+            });
+          };
+
+          const getRandomEvent = (state) => {
+            const pool = [
               "☕ Drank too much coffee. Hands shaking. Batteries shaking. Everything shaking.",
               "📧 CEO sent 3 AM Slack: 'Quick question...' (47 paragraphs follow)",
               "🔥 Intern configured Modbus by guessing. 12 racks now identify as toasters.",
@@ -378,46 +668,37 @@
               "🔌 Customer called: 'Why is my battery at 140% charge?' Good question.",
               "💾 Forgot to commit. Lost 3 hours of work. Git is not your friend today.",
             ];
-            
-            if (upgrades.skipTesting && Math.random() < 0.3) {
-              events.push("⚠️ Skipping testing caused a minor incident. MINOR. Totally minor.");
+            if (state.upgrades.skipTesting && Math.random() < 0.3) {
+              pool.push("⚠️ Skipping testing caused a minor incident. MINOR. Totally minor.");
             }
-            
-            if (upgrades.ignoreCerts && Math.random() < 0.2) {
-              events.push("🚨 Regulator noticed your lack of certifications. They're 'monitoring the situation.'");
+            if (state.upgrades.ignoreCerts && Math.random() < 0.2) {
+              pool.push("🚨 Regulator noticed your lack of certifications. They're 'monitoring the situation.'");
             }
-
-            if (grafanaUnlocked && Math.random() < 0.25) {
+            if (state.grafanaUnlocked && Math.random() < 0.25) {
               const grafanaEvents = [
                 "📉 Grafana query took 45 seconds. Coffee break!",
                 "🔴 Alert: Temperature spike! (It was just someone's laptop near the sensor)",
                 "📊 Created 47 new dashboard panels. Still can't find the useful one.",
                 "⚠️ InfluxDB retention policy expired. 6 months of data? Gone!",
               ];
-              events.push(grafanaEvents[Math.floor(Math.random() * grafanaEvents.length)]);
+              pool.push(grafanaEvents[Math.floor(Math.random() * grafanaEvents.length)]);
             }
-
-            const randomEvent = events[Math.floor(Math.random() * events.length)];
-            addEvent(randomEvent);
+            return pool[Math.floor(Math.random() * pool.length)];
           };
 
           const addEvent = (text) => {
-            setEvents(prev => [{ text, time: Date.now() }, ...prev.slice(0, 9)]);
-          };
-
-          const checkAchievement = (id, name, description) => {
-            if (!achievements.find(a => a.id === id)) {
-              setAchievements(prev => [...prev, { id, name, description }]);
-              addEvent(`🏆 Achievement: ${name}`);
-            }
+            setGameState(prev => ({
+              ...prev,
+              events: [{ text, time: Date.now() }, ...prev.events.slice(0, 9)],
+            }));
           };
 
           const upgradesData = [
             {
               id: 'intern',
               name: 'Hire Intern',
-              cost: 5000 * (upgrades.intern + 1),
-              owned: upgrades.intern,
+              cost: 5000 * (gameState.upgrades.intern + 1),
+              owned: gameState.upgrades.intern,
               effect: '+0.5 batteries/sec',
               debt: 2,
               tooltip: 'They work for equity. Equity is free, right?'
@@ -425,8 +706,8 @@
             {
               id: 'autoAssembler',
               name: 'Auto-Assembler',
-              cost: 20000 * (upgrades.autoAssembler + 1),
-              owned: upgrades.autoAssembler,
+              cost: 20000 * (gameState.upgrades.autoAssembler + 1),
+              owned: gameState.upgrades.autoAssembler,
               effect: '+2 batteries/sec',
               debt: 5,
               tooltip: 'Because manual labor is so 2010'
@@ -435,7 +716,7 @@
               id: 'skipTesting',
               name: 'Skip Testing Phase',
               cost: 50000,
-              owned: upgrades.skipTesting ? 1 : 0,
+              owned: gameState.upgrades.skipTesting ? 1 : 0,
               effect: '+50% production speed',
               debt: 25,
               tooltip: "What's the worst that could happen?",
@@ -445,7 +726,7 @@
               id: 'alibabaOrder',
               name: 'Alibaba Bulk Order',
               cost: 100000,
-              owned: upgrades.alibabaOrder ? 1 : 0,
+              owned: gameState.upgrades.alibabaOrder ? 1 : 0,
               effect: 'Double click power',
               debt: 15,
               tooltip: 'Cheap cells! Mysterious datasheets! Adventure!',
@@ -455,7 +736,7 @@
               id: 'ignoreCerts',
               name: 'Ignore Certifications',
               cost: 150000,
-              owned: upgrades.ignoreCerts ? 1 : 0,
+              owned: gameState.upgrades.ignoreCerts ? 1 : 0,
               effect: 'Save $100k annually',
               debt: 50,
               tooltip: 'Regulations are just suggestions',
@@ -465,13 +746,48 @@
               id: 'grafanaLicense',
               name: 'Deploy Grafana',
               cost: 75000,
-              owned: upgrades.grafanaLicense ? 1 : 0,
+              owned: gameState.upgrades.grafanaLicense ? 1 : 0,
               effect: 'Unlock monitoring tab',
               debt: 30,
               tooltip: 'Look professional in investor demos! (Data optional)',
               oneTime: true
             },
           ];
+
+          // Collect plugin upgrades for display
+          const pluginUpgradesData = [];
+          for (const [category, upgrades] of gameEngine.upgrades) {
+            for (const upg of upgrades) {
+              const isOwned = upg.oneTime ? gameState.pluginData[`upgrade_${upg.id}`] === true : false;
+              const ownedCount = upg.oneTime ? (isOwned ? 1 : 0) : (gameState.pluginData[`upgrade_count_${upg.id}`] || 0);
+              if (upg.unlockCondition && !upg.unlockCondition(gameState)) continue;
+              const costs = upg.cost || {};
+              // Check if ALL resource costs are affordable (not just money)
+              let canAfford = true;
+              const extraCosts = [];
+              for (const [resId, amount] of Object.entries(costs)) {
+                if (resId === 'money') continue;
+                const have = gameState.resources[resId] ?? 0;
+                if (have < amount) canAfford = false;
+                const resDef = gameEngine.resources.get(resId);
+                extraCosts.push({ id: resId, name: resDef?.name || resId, amount, have, affordable: have >= amount });
+              }
+              pluginUpgradesData.push({
+                id: upg.id,
+                name: upg.name,
+                cost: costs.money || 0,
+                extraCosts,
+                canAffordResources: canAfford,
+                owned: ownedCount,
+                effect: upg.description || '',
+                debt: 0,
+                tooltip: '',
+                oneTime: upg.oneTime || false,
+                isPlugin: true,
+                upgradeDef: upg,
+              });
+            }
+          }
 
           return (
             <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white p-4">
@@ -490,67 +806,79 @@
                   <div className="bg-slate-800 p-3 rounded-lg border border-cyan-500/30">
                     <div className="flex items-center gap-2 text-green-400">
                       <DollarSign size={20} />
-                      <span className="font-mono">${Math.floor(money).toLocaleString()}</span>
+                      <span className="font-mono">${Math.floor(gameState.money).toLocaleString()}</span>
                     </div>
                     <div className="text-xs text-gray-400">Money</div>
                   </div>
-                  
+
                   <div className="bg-slate-800 p-3 rounded-lg border border-cyan-500/30">
                     <div className="flex items-center gap-2 text-cyan-400">
                       <Battery size={20} />
-                      <span className="font-mono">{Math.floor(batteries).toLocaleString()}</span>
+                      <span className="font-mono">{Math.floor(gameState.batteries).toLocaleString()}</span>
                     </div>
                     <div className="text-xs text-gray-400">Batteries</div>
                   </div>
-                  
+
                   <div className="bg-slate-800 p-3 rounded-lg border border-cyan-500/30">
                     <div className="flex items-center gap-2 text-blue-400">
                       <TrendingUp size={20} />
-                      <span className="font-mono">{batteriesPerSecond.toFixed(1)}/s</span>
+                      <span className="font-mono">{gameState.batteriesPerSecond.toFixed(1)}/s</span>
                     </div>
                     <div className="text-xs text-gray-400">Production</div>
                   </div>
-                  
+
                   <div className="bg-slate-800 p-3 rounded-lg border border-red-500/30">
                     <div className="flex items-center gap-2 text-red-400">
                       <AlertTriangle size={20} />
-                      <span className="font-mono">{techDebt}</span>
+                      <span className="font-mono">{gameState.techDebt}</span>
                     </div>
                     <div className="text-xs text-gray-400">Tech Debt</div>
                   </div>
-                  
+
                   <div className="bg-slate-800 p-3 rounded-lg border border-amber-500/30">
                     <div className="flex items-center gap-2 text-amber-400">
                       <Coffee size={20} />
-                      <span className="font-mono">{Math.floor(coffee)}</span>
+                      <span className="font-mono">{Math.floor(gameState.coffee)}</span>
                     </div>
                     <div className="text-xs text-gray-400">Coffee Today</div>
                   </div>
+
+                  {/* Plugin resources */}
+                  {Array.from(gameEngine.resources.values())
+                    .filter(r => !CORE_RESOURCE_IDS.includes(r.id))
+                    .map(r => (
+                      <div key={r.id} className="bg-slate-800 p-3 rounded-lg border border-purple-500/30">
+                        <div className="flex items-center gap-2 text-purple-400">
+                          <span>{r.icon || '?'}</span>
+                          <span className="font-mono">
+                            {(gameState.resources[r.id] ?? r.startValue ?? 0).toFixed(r.displayPrecision ?? 0)}
+                            {r.suffix || ''}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-400">{r.name}</div>
+                      </div>
+                    ))
+                  }
                 </div>
 
                 <div className="flex gap-2 mb-6 flex-wrap">
-                  <button
-                    onClick={() => setActiveTab('production')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                      activeTab === 'production'
-                        ? 'bg-cyan-500 text-white'
-                        : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
-                    }`}
-                  >
-                    🔋 Production
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('monitoring')}
-                    className={`px-4 py-2 rounded-lg font-semibold transition-all ${
-                      activeTab === 'monitoring'
-                        ? 'bg-cyan-500 text-white'
-                        : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
-                    } ${!grafanaUnlocked && 'opacity-50 cursor-not-allowed'}`}
-                    disabled={!grafanaUnlocked}
-                    title={!grafanaUnlocked ? 'Deploy Grafana to unlock' : ''}
-                  >
-                    📊 Monitoring {!grafanaUnlocked && '🔒'}
-                  </button>
+                  {Array.from(gameEngine.tabs.values()).map(tab => {
+                    const unlocked = tab.unlockCondition ? tab.unlockCondition(gameState) : true;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => unlocked && setActiveTab(tab.id)}
+                        className={`px-4 py-2 rounded-lg font-semibold transition-all ${
+                          activeTab === tab.id
+                            ? 'bg-cyan-500 text-white'
+                            : 'bg-slate-800 text-gray-400 hover:bg-slate-700'
+                        } ${!unlocked ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        disabled={!unlocked}
+                      >
+                        {tab.icon} {tab.name} {!unlocked && '🔒'}
+                      </button>
+                    );
+                  })}
                   <button
                     onClick={() => saveGame(false)}
                     className="ml-auto px-4 py-2 rounded-lg bg-green-600 hover:bg-green-500 font-semibold transition-all flex items-center gap-2"
@@ -642,7 +970,7 @@
                           
                           <div className="text-center">
                             <p className="text-gray-400 text-sm">Click to assemble batteries!</p>
-                            <p className="text-cyan-400 font-mono">+{clickPower} per click</p>
+                            <p className="text-cyan-400 font-mono">+{gameState.clickPower} per click</p>
                           </div>
                         </div>
                       </div>
@@ -650,22 +978,22 @@
                       <div className="bg-slate-800 p-4 rounded-lg border border-cyan-500/30">
                         <h3 className="text-lg font-bold mb-3 text-cyan-400">Event Log</h3>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
-                          {events.length === 0 && (
+                          {gameState.events.length === 0 && (
                             <p className="text-gray-500 text-sm italic">Nothing has gone wrong... yet.</p>
                           )}
-                          {events.map((event, i) => (
-                            <div key={event.time} className="text-sm text-gray-300 bg-slate-900 p-2 rounded animate-fade-in">
+                          {gameState.events.map((event, i) => (
+                            <div key={event.time + '-' + i} className="text-sm text-gray-300 bg-slate-900 p-2 rounded animate-fade-in">
                               {event.text}
                             </div>
                           ))}
                         </div>
                       </div>
 
-                      {achievements.length > 0 && (
+                      {gameState.achievements.length > 0 && (
                         <div className="bg-slate-800 p-4 rounded-lg border border-yellow-500/30">
                           <h3 className="text-lg font-bold mb-3 text-yellow-400">🏆 Achievements</h3>
                           <div className="space-y-2">
-                            {achievements.map(ach => (
+                            {gameState.achievements.map(ach => (
                               <div key={ach.id} className="text-sm bg-slate-900 p-2 rounded">
                                 <div className="font-bold text-yellow-400">{ach.name}</div>
                                 <div className="text-gray-400 text-xs">{ach.description}</div>
@@ -680,21 +1008,23 @@
                       <h2 className="text-xl font-bold mb-4 text-cyan-400">Upgrades</h2>
                       
                       <div className="space-y-3">
-                        {upgradesData.map(upgrade => {
-                          const canBuy = money >= upgrade.cost && (!upgrade.oneTime || upgrade.owned === 0);
+                        {[...upgradesData, ...pluginUpgradesData].map(upgrade => {
+                          const moneyOk = gameState.money >= upgrade.cost;
+                          const resourcesOk = upgrade.canAffordResources !== false;
+                          const canBuy = moneyOk && resourcesOk && (!upgrade.oneTime || upgrade.owned === 0);
                           const isOwned = upgrade.oneTime && upgrade.owned > 0;
-                          
+
                           return (
                             <div
                               key={upgrade.id}
                               className={`p-4 rounded-lg border ${
-                                isOwned 
-                                  ? 'bg-slate-900/50 border-green-500/30' 
-                                  : canBuy 
-                                    ? 'bg-slate-900 border-cyan-500/50 hover:border-cyan-500 cursor-pointer' 
+                                isOwned
+                                  ? 'bg-slate-900/50 border-green-500/30'
+                                  : canBuy
+                                    ? 'bg-slate-900 border-cyan-500/50 hover:border-cyan-500 cursor-pointer'
                                     : 'bg-slate-900/30 border-slate-700 opacity-50'
                               } transition-all`}
-                              onClick={() => canBuy && buyUpgrade(upgrade.id, upgrade.cost, upgrade.debt)}
+                              onClick={() => canBuy && (upgrade.isPlugin ? buyPluginUpgrade(upgrade.upgradeDef) : buyUpgrade(upgrade.id, upgrade.cost, upgrade.debt))}
                               title={upgrade.tooltip}
                             >
                               <div className="flex justify-between items-start mb-2">
@@ -705,14 +1035,22 @@
                                       <span className="ml-2 text-cyan-400">x{upgrade.owned}</span>
                                     )}
                                     {isOwned && <span className="ml-2 text-green-400">✓</span>}
+                                    {upgrade.isPlugin && <span className="ml-2 text-purple-400 text-xs">[plugin]</span>}
                                   </div>
                                   <div className="text-xs text-gray-400">{upgrade.effect}</div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-green-400 font-mono text-sm">
-                                    ${upgrade.cost.toLocaleString()}
-                                  </div>
-                                  <div className="text-red-400 text-xs">+{upgrade.debt} debt</div>
+                                  {upgrade.cost > 0 && (
+                                    <div className={`font-mono text-sm ${moneyOk ? 'text-green-400' : 'text-red-400'}`}>
+                                      ${upgrade.cost.toLocaleString()}
+                                    </div>
+                                  )}
+                                  {upgrade.extraCosts && upgrade.extraCosts.map(ec => (
+                                    <div key={ec.id} className={`font-mono text-xs ${ec.affordable ? 'text-blue-400' : 'text-red-400'}`}>
+                                      {ec.amount} {ec.name} ({Math.floor(ec.have)}/{ec.amount})
+                                    </div>
+                                  ))}
+                                  {upgrade.debt > 0 && <div className="text-red-400 text-xs">+{upgrade.debt} debt</div>}
                                 </div>
                               </div>
                               <div className="text-xs text-gray-500 italic">{upgrade.tooltip}</div>
@@ -731,7 +1069,7 @@
                   </div>
                 )}
 
-                {activeTab === 'monitoring' && grafanaUnlocked && (
+                {activeTab === 'monitoring' && gameState.grafanaUnlocked && (
                   <div className="space-y-6">
                     <div className="bg-slate-800 p-6 rounded-lg border border-cyan-500/30">
                       <div className="flex items-center gap-3 mb-4">
@@ -749,7 +1087,7 @@
                             <Activity size={16} className="text-orange-400" />
                           </div>
                           <div className="text-4xl font-bold text-orange-400 mb-2">
-                            {metrics.temperature.toFixed(1)}°C
+                            {gameState.metrics.temperature.toFixed(1)}°C
                           </div>
                           <div className="h-20 bg-slate-950 rounded flex items-end justify-around p-2">
                             {[...Array(20)].map((_, i) => (
@@ -771,7 +1109,7 @@
                             <Zap size={16} className="text-cyan-400" />
                           </div>
                           <div className="text-4xl font-bold text-cyan-400 mb-2">
-                            {metrics.voltage.toFixed(2)}V
+                            {gameState.metrics.voltage.toFixed(2)}V
                           </div>
                           <div className="h-20 bg-slate-950 rounded flex items-end justify-around p-2">
                             {[...Array(20)].map((_, i) => (
@@ -793,12 +1131,12 @@
                             <Battery size={16} className="text-green-400" />
                           </div>
                           <div className="text-4xl font-bold text-green-400 mb-2">
-                            {metrics.soc.toFixed(0)}%
+                            {gameState.metrics.soc.toFixed(0)}%
                           </div>
                           <div className="h-20 bg-slate-950 rounded overflow-hidden">
                             <div
                               className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-1000"
-                              style={{ width: `${metrics.soc}%` }}
+                              style={{ width: `${gameState.metrics.soc}%` }}
                             />
                           </div>
                           <p className="text-xs text-gray-500 mt-2">Target: 85% ± 5%</p>
@@ -810,7 +1148,7 @@
                             <AlertTriangle size={16} className="text-red-400" />
                           </div>
                           <div className="text-4xl font-bold text-red-400 mb-2">
-                            {metrics.alerts}
+                            {gameState.metrics.alerts}
                           </div>
                           <div className="text-xs text-gray-400 space-y-1">
                             <div className="bg-slate-950 p-2 rounded">
@@ -849,6 +1187,72 @@
                   </div>
                 )}
 
+                {/* Plugin Manager tab */}
+                {activeTab === 'plugins' && (
+                  <div className="space-y-6">
+                    <div className="bg-slate-800 p-6 rounded-lg border border-purple-500/30">
+                      <h2 className="text-2xl font-bold mb-4 text-purple-400">🔌 Plugin Manager</h2>
+                      <p className="text-gray-400 mb-4">Extend your game with plugins. Each plugin adds new mechanics, resources, and content.</p>
+
+                      {PluginRegistry.plugins.size === 0 ? (
+                        <div className="bg-slate-900 p-6 rounded text-center">
+                          <div className="text-4xl mb-2">📦</div>
+                          <p className="text-gray-400">No plugins detected.</p>
+                          <p className="text-gray-500 text-sm mt-1">Make sure you're running from a local server (npx serve .) — file:// won't load plugins.</p>
+                          <p className="text-gray-500 text-sm mt-1">Check the browser console for [Plugins] messages.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3">
+                          {Array.from(PluginRegistry.plugins.values()).map(plugin => {
+                            const manifest = plugin.manifest;
+                            const isLoaded = PluginRegistry.loadedPlugins.includes(plugin);
+                            const canUnlock = manifest.unlockCondition ? manifest.unlockCondition(gameState) : true;
+                            return (
+                              <div key={manifest.id} className={`p-4 rounded-lg border ${isLoaded ? 'bg-slate-900 border-green-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
+                                <div className="flex justify-between items-start">
+                                  <div>
+                                    <div className="font-bold text-white">{manifest.name} <span className="text-gray-500 text-sm font-normal">v{manifest.version}</span></div>
+                                    <div className="text-sm text-gray-400">{manifest.description}</div>
+                                    {manifest.author && <div className="text-xs text-gray-500 mt-1">By: {manifest.author}</div>}
+                                  </div>
+                                  <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canUnlock ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
+                                    {isLoaded ? 'Loaded' : canUnlock ? 'Available' : 'Locked'}
+                                  </div>
+                                </div>
+                                {manifest.unlockHint && (
+                                  <div className={`mt-2 text-xs px-2 py-1 rounded ${isLoaded ? 'text-green-500/70 bg-green-900/20' : 'text-yellow-500/80 bg-yellow-900/20'}`}>
+                                    {isLoaded ? '✅' : '🔒'} Requires: {manifest.unlockHint}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
+                      <div className="mt-6 p-4 bg-slate-900 rounded border border-purple-500/30">
+                        <h3 className="font-semibold text-purple-400 mb-2">System Info</h3>
+                        <div className="text-xs text-gray-400 space-y-1">
+                          <p>Registered plugins: {PluginRegistry.plugins.size}</p>
+                          <p>Loaded plugins: {PluginRegistry.loadedPlugins.length}</p>
+                          <p>Registered resources: {gameEngine.resources.size}</p>
+                          <p>Registered tabs: {gameEngine.tabs.size}</p>
+                          <p>Registered hooks: {gameEngine.hooks.size}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Dynamic plugin tabs */}
+                {!['production', 'monitoring', 'plugins'].includes(activeTab) && (() => {
+                  const tab = gameEngine.tabs.get(activeTab);
+                  if (tab && tab.render) {
+                    return <div dangerouslySetInnerHTML={{ __html: tab.render(gameState) }} />;
+                  }
+                  return null;
+                })()}
+
                 <div className="mt-6 text-center text-gray-500 text-sm space-y-1">
                   <p>A satirical tribute to Universal Paperclips & the chaos of DevOps 💚</p>
                   {lastSave && (
@@ -870,8 +1274,12 @@
           );
         };
 
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<BESSTycoon />);
+        // Boot: load plugins, then render
+        (async function boot() {
+          await loadPluginFiles();
+          const root = ReactDOM.createRoot(document.getElementById('root'));
+          root.render(<BESSTycoon />);
+        })();
     </script>
 </body>
 </html>

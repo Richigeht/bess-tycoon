@@ -430,9 +430,9 @@
                   ...newState,
                   events: [{ text: '📁 Game loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
                 }));
-                PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
-                // Re-check plugin unlock conditions with restored state
+                // Load plugins FIRST (so they exist), THEN restore their saved state
                 PluginRegistry.loadAll(gameEngine, newState);
+                PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
                 setLastSave(new Date(saveData.timestamp));
               }
             } catch (error) {
@@ -498,6 +498,7 @@
                   ...newState,
                   events: [{ text: '📥 Save file loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
                 }));
+                PluginRegistry.loadAll(gameEngine, newState);
                 PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
                 localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
                 setSaveStatus('✅ Save imported!');
@@ -531,7 +532,9 @@
                 bps += state.upgrades.intern * 0.5;
                 bps += state.upgrades.autoAssembler * 2;
                 if (state.upgrades.skipTesting) bps *= 1.5;
-                state.multipliers = { ...state.multipliers };
+                // Reset multipliers to base values each tick so plugin hooks
+                // apply fresh (not compounding on top of last tick's values)
+                state.multipliers = { productionSpeed: 1, usSalesPrice: 1 };
                 gameEngine.emit('calculateProduction', state);
                 bps *= state.multipliers.productionSpeed;
                 state.batteriesPerSecond = bps;
@@ -808,7 +811,7 @@
                       <DollarSign size={20} />
                       <span className="font-mono">${Math.floor(gameState.money).toLocaleString()}</span>
                     </div>
-                    <div className="text-xs text-gray-400">Money</div>
+                    <div className="text-xs text-gray-400">Money <span className="text-green-500/70">+${Math.round(gameState.batteriesPerSecond * 10).toLocaleString()}/s</span></div>
                   </div>
 
                   <div className="bg-slate-800 p-3 rounded-lg border border-cyan-500/30">

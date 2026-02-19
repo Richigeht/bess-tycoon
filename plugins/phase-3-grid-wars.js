@@ -53,6 +53,11 @@ class Phase3GridWarsPlugin {
   static _riskTolerance = 30;
   static _autoTrading = false;
   static _blackStartPerformed = false;
+  static _lastTradeProfit = 0;
+  static _lastTradeRevenue = 0;
+  static _lastTradePrice = 0;
+  static _lastTradeSize = 0;
+  static _lastFrequencyPayment = 0;
 
   static init(gameEngine) {
     console.log('[Phase3] Initializing The Grid Integration Wars...');
@@ -543,6 +548,56 @@ class Phase3GridWarsPlugin {
             '</div>' +
           '</div>' +
 
+          // Revenue Breakdown
+          (function() {
+            var prodIncome = gs.batteriesPerSecond * 10;
+            var lastTP = p._lastTradeProfit;
+            var lastTS = p._lastTradeSize;
+            var lastTPr = p._lastTradePrice;
+            var tradingPerSec = p._tradeCount > 0 ? (p._totalTradeProfit / p._tradeCount) / 5 : 0;
+            var freqPay = p._lastFrequencyPayment;
+            var totalPerSec = prodIncome + tradingPerSec;
+            var tpColor = lastTP >= 0 ? '#22c55e' : '#ef4444';
+            var tpSign = lastTP >= 0 ? '+' : '';
+            var efficiency = (gs.resources.algorithmScore || 30) / 100;
+            var margin = (0.05 + efficiency * 0.20) * 100;
+
+            return '<div style="background:#0f172a;padding:16px;border-radius:8px;border:1px solid #22c55e30;margin-bottom:16px;">' +
+              '<div style="font-weight:bold;color:#22c55e;margin-bottom:10px;">💰 Revenue Breakdown</div>' +
+              '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">' +
+                // Production income
+                '<div style="background:#1e293b;padding:10px;border-radius:6px;">' +
+                  '<div style="font-size:11px;color:#94a3b8;">🔋 Production Income</div>' +
+                  '<div style="font-size:18px;font-weight:bold;color:#22c55e;">+$' + Math.round(prodIncome).toLocaleString() + '/sec</div>' +
+                  '<div style="font-size:10px;color:#64748b;">' + gs.batteriesPerSecond.toFixed(1) + ' batt/s × $10/batt</div>' +
+                '</div>' +
+                // Trading income
+                '<div style="background:#1e293b;padding:10px;border-radius:6px;">' +
+                  '<div style="font-size:11px;color:#94a3b8;">📈 Trading Income</div>' +
+                  '<div style="font-size:18px;font-weight:bold;color:' + (tradingPerSec >= 0 ? '#06b6d4' : '#ef4444') + ';">' + (tradingPerSec >= 0 ? '+' : '') + '$' + Math.round(tradingPerSec).toLocaleString() + '/sec</div>' +
+                  '<div style="font-size:10px;color:#64748b;">Avg over ' + p._tradeCount + ' trades (every 5s)</div>' +
+                '</div>' +
+                // Last trade detail
+                '<div style="background:#1e293b;padding:10px;border-radius:6px;">' +
+                  '<div style="font-size:11px;color:#94a3b8;">🔄 Last Trade</div>' +
+                  '<div style="font-size:18px;font-weight:bold;color:' + (lastTS === 0 ? '#94a3b8' : tpColor) + ';">' + (lastTS === 0 ? 'Skipped' : tpSign + '$' + Math.round(lastTP).toLocaleString()) + '</div>' +
+                  '<div style="font-size:10px;color:#64748b;">' + (lastTS === 0 ? 'Price too low ($' + Math.round(lastTPr) + '/MWh) - waiting' : lastTS + ' MWh @ $' + Math.round(lastTPr) + '/MWh (' + margin.toFixed(0) + '% margin)') + '</div>' +
+                '</div>' +
+                // Frequency income
+                '<div style="background:#1e293b;padding:10px;border-radius:6px;">' +
+                  '<div style="font-size:11px;color:#94a3b8;">🎯 Frequency Response</div>' +
+                  '<div style="font-size:18px;font-weight:bold;color:#fbbf24;">' + (freqPay > 0 ? '+$' + freqPay.toLocaleString() : 'N/A') + '</div>' +
+                  '<div style="font-size:10px;color:#64748b;">' + (freqPay > 0 ? 'Last event payout' : 'No SCADA system yet') + '</div>' +
+                '</div>' +
+              '</div>' +
+              // Total estimate
+              '<div style="margin-top:8px;padding:8px 12px;background:#1e293b;border-radius:6px;display:flex;justify-content:space-between;align-items:center;">' +
+                '<span style="font-size:12px;color:#94a3b8;">Estimated Total Income:</span>' +
+                '<span style="font-size:20px;font-weight:bold;color:' + (totalPerSec >= 0 ? '#22c55e' : '#ef4444') + ';">~$' + Math.round(totalPerSec).toLocaleString() + '/sec</span>' +
+              '</div>' +
+            '</div>';
+          })() +
+
           // Markets & Grids
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">' +
             '<div style="background:#1e293b;padding:16px;border-radius:8px;border:1px solid #a78bfa30;">' +
@@ -748,34 +803,62 @@ class Phase3GridWarsPlugin {
       if (this._tickCounter % 5 === 0) {
         var efficiency = algoScore / 100;
         var tradeSize = gridsConnected * 2; // MWh per trade
-        var priceSpread = this._currentPrice * efficiency * 0.15; // profit margin
-        var firmwarePenalty = this._firmwareBugActive && Math.random() < 0.1 ? -2 : 1;
-        var tradeProfit = priceSpread * tradeSize * marketMult * firmwarePenalty;
 
-        // Risk factor: higher algo = more consistent
-        var luckFactor = (Math.random() - 0.3) * (1 - efficiency * 0.8);
-        tradeProfit *= (1 + luckFactor);
+        // Revenue: sell MWh at market price with a margin based on algo skill
+        // margin = 5% base + up to 20% more from algorithm quality
+        var margin = 0.05 + efficiency * 0.20;
 
-        // Battery degradation cost
-        var degradCost = tradeSize * 10 * (1 + this._batteryDegradation / 100);
-        tradeProfit -= degradCost;
+        // Operating costs: grid fees + battery wear ($2/MWh base)
+        var operatingCost = tradeSize * 2 * (1 + this._batteryDegradation / 50);
 
-        // Apply trade
-        gameState.money += tradeProfit;
-        gameState.resources.mwhTraded = (gameState.resources.mwhTraded || 0) + tradeSize;
-        this._tradeCount++;
-        this._totalTradeProfit += tradeProfit;
-        if (tradeProfit > 0) this._profitableTradeCount++;
-        this._cycleCount++;
+        // Smart trading: check if price is worth trading at
+        // Better algorithms are better at knowing when NOT to trade
+        var expectedRevenue = tradeSize * this._currentPrice * margin * marketMult;
+        var skipChance = 0.1 + efficiency * 0.7; // algo 30: 31% skip, algo 100: 80% skip
+        var shouldSkip = expectedRevenue < operatingCost && Math.random() < skipChance;
 
-        // Battery degradation increases over time
-        this._batteryDegradation += 0.001 * tradeSize;
+        if (!shouldSkip) {
+          var tradeRevenue = tradeSize * this._currentPrice * margin;
 
-        // Track daily profit
-        this._dayProfitAccumulator += tradeProfit;
+          // Market multiplier from unlocked markets
+          tradeRevenue *= marketMult;
 
-        // Carbon credits from clean energy trading
-        gameState.resources.carbonCredits = (gameState.resources.carbonCredits || 0) + tradeSize * 0.05;
+          // Firmware bug: 10% chance trades execute backwards (loss)
+          var firmwarePenalty = this._firmwareBugActive && Math.random() < 0.1 ? -1 : 1;
+          tradeRevenue *= firmwarePenalty;
+
+          // Risk factor: higher algo = more consistent results
+          var luckFactor = (Math.random() - 0.4) * (1 - efficiency * 0.7);
+          tradeRevenue *= (1 + luckFactor);
+
+          var tradeProfit = tradeRevenue - operatingCost;
+
+          // Apply trade
+          gameState.money += tradeProfit;
+          gameState.resources.mwhTraded = (gameState.resources.mwhTraded || 0) + tradeSize;
+          this._tradeCount++;
+          this._totalTradeProfit += tradeProfit;
+          if (tradeProfit > 0) this._profitableTradeCount++;
+          this._cycleCount++;
+          this._lastTradeProfit = tradeProfit;
+          this._lastTradeRevenue = tradeRevenue;
+          this._lastTradePrice = this._currentPrice;
+          this._lastTradeSize = tradeSize;
+          // Battery degradation increases slowly over time
+          this._batteryDegradation += 0.001 * tradeSize;
+
+          // Track daily profit
+          this._dayProfitAccumulator += tradeProfit;
+
+          // Carbon credits from clean energy trading
+          gameState.resources.carbonCredits = (gameState.resources.carbonCredits || 0) + tradeSize * 0.05;
+        } else {
+          // Algorithm decided to skip - record it
+          this._lastTradeProfit = 0;
+          this._lastTradeRevenue = 0;
+          this._lastTradePrice = this._currentPrice;
+          this._lastTradeSize = 0;
+        }
       }
     }
 
@@ -813,6 +896,7 @@ class Phase3GridWarsPlugin {
           gameState.money += payment;
           gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability || 50) + 1);
           this._frequencyMissStreak = 0;
+          this._lastFrequencyPayment = payment;
           if (isFast) this._fastFrequencyResponses++;
         } else {
           gameState.resources.frequencyCredits = Math.max(0, (gameState.resources.frequencyCredits || 0) - 15);

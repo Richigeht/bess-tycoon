@@ -1,0 +1,190 @@
+<DesignBoard>
+<Section name="Global Markets tab">
+
+<Artboard id="global-markets-dashboard" title="Global Markets tab — dashboard (active)" surface="browser" html={`
+<div style="display:flex;flex-direction:column;gap:14px;padding:16px;height:100%;box-sizing:border-box">
+  <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+    <div>
+      <h1 style="margin:0">⚡ BESS Tycoon: An Incremental Nightmare</h1>
+      <small class="wf-muted">"Move fast and break grids"</small>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:8px;width:100%;overflow:hidden;white-space:nowrap">
+    <div class="wf-card" style="flex:1;min-width:0">
+      <strong>$2.4M</strong><br/><small class="wf-muted">Money</small>
+    </div>
+    <div class="wf-card" style="flex:1;min-width:0">
+      <strong>184,200</strong><br/><small class="wf-muted">Batteries</small>
+    </div>
+    <div class="wf-card" style="flex:1;min-width:0">
+      <strong>312.0/s</strong><br/><small class="wf-muted">Production</small>
+    </div>
+    <div class="wf-card" style="flex:1;min-width:0">
+      <strong>$8.1M</strong><br/><small class="wf-muted">Intl. Revenue 🌐</small>
+    </div>
+    <div class="wf-card" style="flex:1;min-width:0">
+      <strong>62 🌪️</strong><br/><small class="wf-muted">Geopolitical Risk</small>
+    </div>
+    <span class="wf-pill">+6 more</span>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:8px;width:100%;white-space:nowrap;overflow-x:auto">
+    <span class="wf-pill">🔋 Production</span>
+    <span class="wf-pill">📊 Monitoring</span>
+    <span class="wf-pill">🔌 Plugins</span>
+    <span class="wf-pill">📈 Trading</span>
+    <span class="wf-pill accent">🌍 Global Markets</span>
+    <div style="flex:1"></div>
+    <button>Save</button>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <h2 style="margin:0">🌍 Global Markets</h2>
+    <small class="wf-muted">Your batteries are now a multinational supply chain. Good luck with customs.</small>
+  </div>
+
+  <div style="display:flex;gap:10px;width:100%">
+    <div class="wf-card" style="flex:1">
+      <small class="wf-muted">International Revenue (lifetime)</small><br/>
+      <strong>$8,140,000</strong>
+    </div>
+    <div class="wf-card" style="flex:1">
+      <small class="wf-muted">Trade Compliance Score</small><br/>
+      <strong>B (74/100)</strong>
+    </div>
+    <div class="wf-card" style="flex:1">
+      <small class="wf-muted">Geopolitical Risk Index</small><br/>
+      <strong style="color:var(--wf-warn)">62 — Elevated</strong>
+    </div>
+    <div class="wf-card" style="flex:1">
+      <small class="wf-muted">Localization Debt</small><br/>
+      <strong>17 🗣️</strong>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:8px;flex:1">
+    <strong>Regions</strong>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇪🇺 European Union</strong>
+          <span class="wf-pill accent">Active</span>
+        </div>
+        <small class="wf-muted">Relationship: +18 · FX: EUR steady</small>
+        <small class="wf-muted">Sell multiplier: 1.3x</small>
+        <button>Manage</button>
+      </div>
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇨🇳 China</strong>
+          <span class="wf-pill">Locked</span>
+        </div>
+        <small class="wf-muted">Requires: CCC Certification</small>
+        <small class="wf-muted">Entry cost: $1.5M</small>
+        <button data-primary>Enter Market</button>
+      </div>
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇯🇵 Japan</strong>
+          <span class="wf-pill">Locked</span>
+        </div>
+        <small class="wf-muted">Requires: PSE Certification</small>
+        <small class="wf-muted">Entry cost: $2.2M</small>
+        <button data-primary>Enter Market</button>
+      </div>
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px;opacity:0.6">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇮🇳 India</strong>
+          <span class="wf-pill">Locked</span>
+        </div>
+        <small class="wf-muted">Not yet available — Phase 4.1</small>
+      </div>
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px;opacity:0.6">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇦🇪 Middle East</strong>
+          <span class="wf-pill">Locked</span>
+        </div>
+        <small class="wf-muted">Not yet available — Phase 4.1</small>
+      </div>
+
+      <div class="wf-card" style="display:flex;flex-direction:column;gap:6px;opacity:0.6">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <strong>🇦🇺 Australia</strong>
+          <span class="wf-pill">Locked</span>
+        </div>
+        <small class="wf-muted">Not yet available — Phase 4.1</small>
+      </div>
+
+    </div>
+  </div>
+</div>
+`}>
+</Artboard>
+
+<Annotation targetId="global-markets-dashboard" placement="right">
+Header, stat row, and tab rail reproduce the real shell from js/app.js (lines ~632-724) unchanged — only the active tab and the four new stat cards are new.
+</Annotation>
+
+<Annotation targetId="global-markets-dashboard" placement="bottom">
+v1 ships 3 enterable regions (EU, China, Japan); India/Middle East/Australia render locked as a visible roadmap, not dead space.
+</Annotation>
+
+<Artboard id="region-entry-panel" title="Enter Market — confirmation panel" surface="panel" html={`
+<div style="display:flex;flex-direction:column;gap:12px;padding:16px;height:100%;box-sizing:border-box">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <strong>Enter Market — 🇨🇳 China</strong>
+    <span data-icon="close" aria-label="Close"></span>
+  </div>
+
+  <div class="wf-card" style="display:flex;flex-direction:column;gap:8px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <span data-icon="check" aria-label="Met"></span>
+      <span>100,000+ batteries produced</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span data-icon="x" aria-label="Not met"></span>
+      <span>CCC Certification</span>
+      <span class="wf-pill">$400k</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <span data-icon="check" aria-label="Met"></span>
+      <span>Joint-venture partner secured</span>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <small class="wf-muted">Entry cost</small>
+    <strong>$1,500,000</strong>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:4px">
+    <small class="wf-muted">Projected sell multiplier</small>
+    <strong>1.6x (volatile — CNY hedge not yet purchased)</strong>
+  </div>
+
+  <div class="wf-card" style="border-color:var(--wf-warn)">
+    <small>⚠️ Geopolitical Risk Index above 50 — entry cost +20% surcharge applied.</small>
+  </div>
+
+  <div style="display:flex;gap:8px;margin-top:auto">
+    <button style="flex:1">Cancel</button>
+    <button class="primary" style="flex:1">Confirm Entry</button>
+  </div>
+</div>
+`}>
+</Artboard>
+
+<Annotation targetId="region-entry-panel" placement="right">
+Opens when a locked region card's "Enter Market" button is clicked. Mirrors the real gating pattern from phase-3-grid-wars.js (cert + cost + condition checklist before the action is enabled).
+</Annotation>
+
+<Connector from="global-markets-dashboard" to="region-entry-panel" label="Click 'Enter Market' on a locked region" />
+
+</Section>
+</DesignBoard>

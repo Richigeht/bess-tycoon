@@ -1,0 +1,211 @@
+---
+title: "Phase 4: Global Expansion — plugin implementation plan"
+description: "New BESS Tycoon game phase: international markets, currency/geopolitical risk, and a Global Markets tab, shipped as a self-contained plugin"
+---
+
+# Phase 4: Global Expansion
+
+Your batteries cross a border. The "Global Markets" tab lets the player enter three international markets (EU, China, Japan), each gated behind a certification and an entry fee, each paying out at its own currency-weighted multiplier, and each exposed to its own geopolitical risk events (trade wars, currency crashes, customs seizures). It plays the same card-grid-plus-stat-bar pattern as the existing Trading and Plugins tabs, so a returning player recognizes the shape immediately — what's new is the content, not the UI language.
+
+## Done means
+
+- A new file `plugins/phase-4-global-expansion.js` registers with `PluginRegistry`, adds 4 resources, a "Global Markets" tab, region-entry upgrades, certification upgrades, and 4 random events.
+- `plugins/manifest.json` lists the new file.
+- The tab unlocks using the exact completion gate `scrum-to-do/PHASE_3_GRID_WARS.md` already states ("Phase 4 Completion" criteria below), so finishing Phase 3 as designed flows straight into Phase 4 with no extra wiring.
+- A save/reload round-trip preserves region entry status, relationship scores, and FX state.
+- Zero changes to `js/app.js` or `js/engine.js` — the plugin is fully additive, same as Phase 2 and Phase 3.
+
+## Non-goals (v1)
+
+- No live currency-market mini-game (Phase 3 already owns the twitchy-reflex mechanic; Phase 4 reuses simple multiplier math instead of inventing a second one).
+- Only 3 regions ship now (EU, China, Japan). India, Middle East, and Australia render as visibly-locked roadmap cards (see canvas) but have no logic — that's a Phase 4.1 follow-up, not scope creep into this cut.
+- No new save-file format version — Phase 4 state nests under the existing `pluginData` bag, same as Phase 2/3.
+
+## Grounding
+
+- Phase 2 (`plugins/phase-2-scale-up.js`) and Phase 3 (`plugins/phase-3-grid-wars.js`) are already implemented and listed in `plugins/manifest.json`. Phase 4 is the next item on the README's "Planned Plugins" list, and `PHASE_3_GRID_WARS.md` literally ends its "Phase 3 Completion" section with "**Unlock Phase 4: Global Expansion**" — this plan targets exactly that gate.
+- The core game state already declares `multipliers: { productionSpeed, usSalesPrice }` (`js/app.js:142`, restated at `js/app.js:197`), but only `productionSpeed` is ever read (`js/app.js:379`). `usSalesPrice` has been a planted, unused hook since the schema was written — see the decision below on what Phase 4 does (and deliberately doesn't do) with it.
+- Plugin tabs render as a raw HTML string via `dangerouslySetInnerHTML` (`js/app.js:1101-1107`), built with ES5 `function` expressions and inline `style="..."` strings, not JSX — `phase-3-grid-wars.js:407-460` is the template to follow.
+- Internal plugin state is plain `static` class fields, snapshotted into `saveData.pluginData.phase3` in `onBeforeSave` and restored in `onAfterLoad` (`phase-3-grid-wars.js:1015-1068`). Phase 4 mirrors this exactly under `pluginData.phase4`.
+
+## Decisions that are expensive to undo later
+
+1. **Don't repurpose `usSalesPrice`.** Phase 4 introduces its own `internationalRevenue` resource and applies region multipliers entirely inside the plugin's own `onTick`, rather than writing into the shared `multipliers.usSalesPrice`. That field's name says "US" — overloading it to mean "current region multiplier" would corrupt its meaning for any future US-only logic. International earnings are a parallel income stream the plugin adds directly to `gameState.money`, not a multiplier on the core production loop.
+2. **State lives in `resources` + `pluginData.phase4`, never new top-level `gameState` fields.** The 4 new resources go through `gameEngine.addResource` (same as every other plugin resource). Per-region status (entered?, relationship, FX rate) is plugin-internal and only touches `gameState` through the documented `pluginData` bag. This is what keeps the feature fully additive — no edits to `js/app.js`/`js/engine.js` core schema, ever.
+3. **Resource and region ids are permanent once shipped** — saved games will reference them by string id. Lock in the table below as the final id list before writing code; renaming later breaks old saves silently (no migration exists yet for plugin ids).
+4. **Unlock gate is the numbers already published in `PHASE_3_GRID_WARS.md`**, not new arbitrary thresholds — see Unlock condition below. Re-deriving a different gate later would contradict the existing design doc players may have already read.
+
+## New resources
+
+| id | icon | name | starts at | gain | lose | used for |
+|---|---|---|---|---|---|---|
+| `internationalRevenue` | 🌐 | International Revenue | 0 | every region payout tick | never (lifetime stat) | flavor/achievements, no gating |
+| `tradeComplianceScore` | 📦 | Trade Compliance Score | 50 (0-100) | passing customs, completing certs | natural decay, customs seizures | required minimum to enter higher-tariff regions |
+| `geopoliticalRiskIndex` | 🌪️ | Geopolitical Risk Index | 30 (0-100) | random events, sanctions | de-escalation events, time | >50 adds entry-cost surcharge; >80 can sanction a region (lock it temporarily) |
+| `localizationDebt` | 🗣️ | Localization Debt | 0 | entering a region without the matching localization upgrade | purchasing localization upgrades | >25 raises "Translation Bug" event odds |
+
+## Regions (v1 ships EU/China/Japan; India/ME/AUS are locked placeholders)
+
+| id | region | flavor | entry cost | cert required | base sell multiplier | starting relationship |
+|---|---|---|---|---|---|---|
+| `eu` | European Union | "GDPR for batteries. Yes, really." | $800k | CE Marking | 1.3x | +10 |
+| `china` | China | "Joint venture required. Bring a translator and a lawyer." | $1.5M | CCC Certification | 1.6x (volatile) | 0 |
+| `japan` | Japan | "Their QA culture makes your testing look like a coin flip." | $2.2M | PSE Certification | 1.4x | +5 |
+| `india` | India | *(locked, Phase 4.1)* | — | — | — | — |
+| `middleEast` | Middle East | *(locked, Phase 4.1)* | — | — | — | — |
+| `australia` | Australia | *(locked, Phase 4.1)* | — | — | — | — |
+
+## Upgrades
+
+**Market entry vehicles** (one-time, per region — cost is the entry cost in the table above; gated by the matching certification)
+- Local Distributor Partnership — cheapest, lowest relationship ceiling.
+- Joint Venture — required for `china`; raises `localizationDebt` faster if rushed.
+- Wholly-Owned Subsidiary — most expensive, removes the distributor cut from payouts.
+
+**International certifications** (one-time, parallels Phase 2's certification gauntlet)
+- CE Marking ($400k) — unlocks `eu`.
+- CCC Certification ($400k) — unlocks `china`.
+- PSE Certification ($350k) — unlocks `japan`.
+
+**Currency hedging** (repeatable tiers, dampens FX swings on payouts)
+- Spot Market (free, default) — full FX volatility passes through.
+- Forward Contracts ($150k) — ±50% volatility dampening.
+- Currency Swap Desk ($500k) — ±80% dampening.
+
+## Random events (4)
+
+- **Trade War Escalation** — `geopoliticalRiskIndex` > 60, random chance/week. One region's effective tariff spikes; entry-locked regions' surcharge rises. Choice: absorb the margin hit, or pause trading in that region for 24h.
+- **Currency Crash** — a region's FX rate drops 30-50% for a few in-game hours; payouts from that region shrink accordingly unless hedged.
+- **Customs Seizure** — a shipment is held; pay a bribe (`tradeComplianceScore` -10) or wait it out (lost revenue this tick).
+- **Translation Bug** — triggers above `localizationDebt` 25; a product name or label is embarrassing in the local market, hits `tradeComplianceScore` and relationship for that region.
+
+## Achievements
+
+| achievement | condition | reward |
+|---|---|---|
+| Passport Stamped | Enter first international market | +$50k |
+| Multinational | Active in all 3 v1 regions simultaneously | +20 Trade Compliance |
+| Survived a Trade War | Live through a Trade War Escalation without pausing a region | +$200k |
+| Lost in Translation | Trigger a Translation Bug event (bad achievement, still counts) | flavor only |
+
+## New UI tab — Global Markets
+
+See the canvas above for the dashboard (region card grid + 4 stat cards) and the region-entry confirmation panel. Both reproduce the real app shell (header, stat row, tab rail from `js/app.js:632-724`) unchanged — the only new surface is the tab content itself, built the same way `phase-3-grid-wars.js`'s Trading tab is: one `render(gameState)` function returning a concatenated HTML string, registered via `gameEngine.addTab`.
+
+## File map
+
+```
+plugins/
+  phase-4-global-expansion.js   (new)
+  manifest.json                 (edit: append "phase-4-global-expansion.js")
+scrum-to-do/
+  PHASE_4_GLOBAL_EXPANSION.md   (new: design doc, same format as PHASE_2/PHASE_3, for repo consistency)
+```
+
+No changes to `js/app.js`, `js/engine.js`, or `index.html`.
+
+## Plugin skeleton
+
+```javascript
+// plugins/phase-4-global-expansion.js
+class Phase4GlobalExpansionPlugin {
+  static manifest = {
+    id: 'phase-4-global-expansion',
+    name: 'Global Expansion',
+    version: '1.0.0',
+    author: 'BESS Tycoon Team',
+    description: 'International markets, currency risk, and geopolitical chaos.',
+    unlockCondition: function(gameState) {
+      // Same numbers PHASE_3_GRID_WARS.md already publishes as "Phase 3 Completion".
+      return (gameState.resources.mwhTraded || 0) >= 100000 &&
+        (gameState.resources.algorithmScore || 0) >= 70 &&
+        (gameState.resources.frequencyCredits || 0) >= 500 &&
+        (gameState.resources.carbonCredits || 0) >= 1000;
+    },
+    unlockHint: 'Finish Phase 3: 100k MWh traded, 70+ algorithm score, 500+ FR credits, 1000+ carbon credits.',
+    dependencies: ['phase-3-grid-wars'],
+    conflicts: [],
+  };
+
+  static _regions = {
+    eu: { entered: false, relationship: 10, fxRate: 1.0 },
+    china: { entered: false, relationship: 0, fxRate: 1.0 },
+    japan: { entered: false, relationship: 5, fxRate: 1.0 },
+  };
+
+  static init(gameEngine) {
+    gameEngine.addResource({ id: 'internationalRevenue', name: 'International Revenue', icon: '🌐', startValue: 0, displayPrecision: 0 });
+    gameEngine.addResource({ id: 'tradeComplianceScore', name: 'Trade Compliance Score', icon: '📦', startValue: 50, displayPrecision: 0 });
+    gameEngine.addResource({ id: 'geopoliticalRiskIndex', name: 'Geopolitical Risk Index', icon: '🌪️', startValue: 30, displayPrecision: 0 });
+    gameEngine.addResource({ id: 'localizationDebt', name: 'Localization Debt', icon: '🗣️', startValue: 0, displayPrecision: 0 });
+
+    gameEngine.addTab({
+      id: 'globalMarkets',
+      name: 'Global Markets',
+      icon: '🌍',
+      unlockCondition: function() { return true; }, // plugin already gated by manifest.unlockCondition
+      render: function(gs) { /* return concatenated HTML string, mirrors phase-3-grid-wars.js:407-460 */ },
+    });
+
+    gameEngine.on('tick', function(state, deltaTime) {
+      // apply per-region payouts into state.money + resources.internationalRevenue,
+      // decay tradeComplianceScore, roll random events.
+    });
+  }
+
+  static onBeforeSave(saveData) {
+    saveData.pluginData.phase4 = { regions: this._regions };
+  }
+
+  static onAfterLoad(saveData) {
+    if (saveData.pluginData && saveData.pluginData.phase4) {
+      this._regions = saveData.pluginData.phase4.regions;
+    }
+  }
+}
+
+if (typeof PluginRegistry !== 'undefined') {
+  PluginRegistry.register(Phase4GlobalExpansionPlugin);
+}
+```
+
+## Verification
+
+- Manual smoke test: serve with `npx serve .` (plugin fetch needs a server, per README), use the browser console to set `gameState.resources.mwhTraded = 100000` (and the other three gate values) to fast-forward the unlock without grinding, confirm the "🌍 Global Markets" tab appears and the dashboard renders the 3 enterable region cards plus 3 locked placeholders.
+- Click "Enter Market" on a region missing its certification → confirm the entry panel shows the cert as unmet and the Confirm button stays disabled until the cert upgrade is purchased.
+- Successfully enter a region → confirm `internationalRevenue` starts ticking up and a region card flips to "Active".
+- Save, reload the page, load the save → confirm entered regions, relationship scores, and FX state survive the round-trip (this is the part most likely to silently break, since it's the only persistence logic in the feature).
+- No automated test suite exists in this repo for Phase 2/3 either — Phase 4 doesn't need to be the first to add one; the manual smoke test above matches the project's existing verification bar.
+
+<QuestionForm
+  title="Open Questions"
+  questions={[
+    {
+      id: "income-model",
+      title: "Should international payouts be a separate resource stream, or blend into the existing battery production multiplier?",
+      mode: "single",
+      options: [
+        { id: "separate-stream", label: "Separate `internationalRevenue` stream, untouched core math", detail: "Keeps js/app.js untouched; matches the additive-plugin architecture.", recommended: true },
+        { id: "blend-multiplier", label: "Blend into `multipliers.usSalesPrice` / production math", detail: "Repurposes the existing dead field, but changes its meaning and touches core revenue calc." }
+      ]
+    },
+    {
+      id: "region-count",
+      title: "How many regions should ship in this first cut?",
+      mode: "single",
+      options: [
+        { id: "three", label: "3 regions (EU, China, Japan) live; 3 more shown locked", detail: "Smallest cut that proves the mechanic without foreclosing the roadmap.", recommended: true },
+        { id: "all-six", label: "All 6 regions live at launch", detail: "More content day one, but ~2x the balancing/testing surface before anything ships." }
+      ]
+    },
+    {
+      id: "design-doc",
+      title: "Should this plan also produce scrum-to-do/PHASE_4_GLOBAL_EXPANSION.md as a standalone design doc?",
+      mode: "single",
+      options: [
+        { id: "yes-doc", label: "Yes — keep matching Phase 2/3's in-repo doc convention", detail: "Consistent with existing project structure; useful as a content reference independent of this plan.", recommended: true },
+        { id: "no-doc", label: "No — this plan.mdx is the only planning artifact needed", detail: "Less to maintain, but breaks the established scrum-to-do/ pattern." }
+      ]
+    }
+  ]}
+/>

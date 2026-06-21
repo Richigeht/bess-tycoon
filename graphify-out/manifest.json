@@ -1,0 +1,67 @@
+{
+  "plugins/example-plugin.js": {
+    "mtime": 1781989737.7477512,
+    "ast_hash": "c8f78720f966f30acaaa54916869d1b8",
+    "semantic_hash": "c8f78720f966f30acaaa54916869d1b8"
+  },
+  "plugins/manifest.json": {
+    "mtime": 1781989737.747855,
+    "ast_hash": "28d77a396c7185130089a5483f3a8fad",
+    "semantic_hash": "28d77a396c7185130089a5483f3a8fad"
+  },
+  "plugins/phase-2-scale-up.js": {
+    "mtime": 1781989737.7478898,
+    "ast_hash": "c344ade9c9eb9109f84974f13fd65d03",
+    "semantic_hash": "c344ade9c9eb9109f84974f13fd65d03"
+  },
+  "plugins/phase-3-grid-wars.js": {
+    "mtime": 1781989737.747953,
+    "ast_hash": "1f334d934349d6f89f12a6633a6dc7f0",
+    "semantic_hash": "1f334d934349d6f89f12a6633a6dc7f0"
+  },
+  "/home/sevenup/vscode/bess-tycoon/plugins/example-plugin.js": {
+    "mtime": 1781989737.7477512,
+    "ast_hash": "c8f78720f966f30acaaa54916869d1b8",
+    "semantic_hash": "c8f78720f966f30acaaa54916869d1b8"
+  },
+  "/home/sevenup/vscode/bess-tycoon/plugins/manifest.json": {
+    "mtime": 1781989737.747855,
+    "ast_hash": "28d77a396c7185130089a5483f3a8fad",
+    "semantic_hash": "28d77a396c7185130089a5483f3a8fad"
+  },
+  "/home/sevenup/vscode/bess-tycoon/plugins/phase-2-scale-up.js": {
+    "mtime": 1781989737.7478898,
+    "ast_hash": "c344ade9c9eb9109f84974f13fd65d03",
+    "semantic_hash": "c344ade9c9eb9109f84974f13fd65d03"
+  },
+  "/home/sevenup/vscode/bess-tycoon/plugins/phase-3-grid-wars.js": {
+    "mtime": 1781989737.747953,
+    "ast_hash": "1f334d934349d6f89f12a6633a6dc7f0",
+    "semantic_hash": "1f334d934349d6f89f12a6633a6dc7f0"
+  },
+  "/home/sevenup/vscode/bess-tycoon/README.md": {
+    "mtime": 1781989737.7475317,
+    "ast_hash": "7070da77289fcf4edd725d55c646542a",
+    "semantic_hash": "7070da77289fcf4edd725d55c646542a"
+  },
+  "/home/sevenup/vscode/bess-tycoon/index.html": {
+    "mtime": 1781989737.7475772,
+    "ast_hash": "4d1abb8989cd7a2fb6e7422b8fa0dbce",
+    "semantic_hash": "4d1abb8989cd7a2fb6e7422b8fa0dbce"
+  },
+  "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_2_SCALE_UP.md": {
+    "mtime": 1781989737.7481306,
+    "ast_hash": "c7d01c94bd3cb45e8be84f7149a4f4db",
+    "semantic_hash": "c7d01c94bd3cb45e8be84f7149a4f4db"
+  },
+  "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_3_GRID_WARS.md": {
+    "mtime": 1781989737.7482092,
+    "ast_hash": "c40d6782f9e5c14583e46fe087e26724",
+    "semantic_hash": "c40d6782f9e5c14583e46fe087e26724"
+  },
+  "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PLUGIN_ARCHITECTURE.md": {
+    "mtime": 1781989737.748318,
+    "ast_hash": "c4d1635ca5a5c2c4f5e018b67b938087",
+    "semantic_hash": "c4d1635ca5a5c2c4f5e018b67b938087"
+  }
+}

@@ -1091,7 +1091,8 @@ class Phase3GridWarsPlugin {
     console.log('[Phase3] Cleaning up...');
     this._tickCounter = 0;
     this._priceHistory = [];
-    this._connectedGrids = [];
+    // Keep _connectedGrids: grid upgrades are oneTime and gate on persisted
+    // pluginData flags, so init() can't rebuild this list on re-enable.
   }
 }
 

@@ -206,6 +206,21 @@ const BESSTycoon = () => {
   const [lastSave, setLastSave] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
   const [showExportImport, setShowExportImport] = useState(false);
+  const [, setPluginVersion] = useState(0);
+
+  // Manually enable/disable a plugin from the Plugin Manager UI.
+  const togglePlugin = (pluginId) => {
+    const PluginClass = PluginRegistry.plugins.get(pluginId);
+    const isLoaded = PluginRegistry.loadedPlugins.includes(PluginClass);
+    if (isLoaded) {
+      PluginRegistry.disabledPlugins.add(pluginId);
+      PluginRegistry.unload(pluginId, gameEngine);
+    } else {
+      PluginRegistry.disabledPlugins.delete(pluginId);
+      PluginRegistry.enable(pluginId, gameEngine);
+    }
+    setPluginVersion(v => v + 1); // force re-render to reflect new state
+  };
 
   // Load saved game on mount
   useEffect(() => {
@@ -1043,8 +1058,18 @@ const BESSTycoon = () => {
                             <div className="text-sm text-gray-400">{manifest.description}</div>
                             {manifest.author && <div className="text-xs text-gray-500 mt-1">By: {manifest.author}</div>}
                           </div>
-                          <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canUnlock ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
-                            {isLoaded ? 'Loaded' : canUnlock ? 'Available' : 'Locked'}
+                          <div className="flex items-center gap-2">
+                            <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canUnlock ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
+                              {isLoaded ? 'Loaded' : canUnlock ? 'Available' : 'Locked'}
+                            </div>
+                            {(isLoaded || canUnlock) && (
+                              <button
+                                onClick={() => togglePlugin(manifest.id)}
+                                className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${isLoaded ? 'bg-red-900/60 text-red-300 hover:bg-red-800' : 'bg-purple-900/60 text-purple-300 hover:bg-purple-800'}`}
+                              >
+                                {isLoaded ? 'Disable' : 'Enable'}
+                              </button>
+                            )}
                           </div>
                         </div>
                         {manifest.unlockHint && (

@@ -3,6 +3,19 @@
 export class PluginRegistry {
   static plugins = new Map();
   static loadedPlugins = [];
+  static disabledPlugins = new Set(); // player-disabled; not auto-reloaded
+  static _initializingPluginId = null;
+
+  // Run a plugin's init() with hook-ownership tracking enabled so that
+  // any gameEngine.on() calls made during init are tagged for later removal.
+  static _initPlugin(PluginClass, gameEngine) {
+    this._initializingPluginId = PluginClass.manifest.id;
+    try {
+      PluginClass.init(gameEngine);
+    } finally {
+      this._initializingPluginId = null;
+    }
+  }
 
   static register(PluginClass) {
     const manifest = PluginClass.manifest;
@@ -25,12 +38,13 @@ export class PluginRegistry {
     for (const pluginId of loadOrder) {
       const PluginClass = this.plugins.get(pluginId);
       if (this.loadedPlugins.includes(PluginClass)) continue;
+      if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
       if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) {
         console.log(`Plugin ${pluginId} not yet unlocked (need: ${PluginClass.manifest.description})`);
         continue;
       }
       try {
-        PluginClass.init(gameEngine);
+        this._initPlugin(PluginClass, gameEngine);
         this.loadedPlugins.push(PluginClass);
         console.log(`Loaded plugin: ${PluginClass.manifest.name}`);
       } catch (error) {
@@ -43,9 +57,10 @@ export class PluginRegistry {
   static checkAndLoadNewPlugins(gameEngine, gameState) {
     for (const [pluginId, PluginClass] of this.plugins) {
       if (this.loadedPlugins.includes(PluginClass)) continue;
+      if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
       if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) continue;
       try {
-        PluginClass.init(gameEngine);
+        this._initPlugin(PluginClass, gameEngine);
         this.loadedPlugins.push(PluginClass);
         console.log(`Dynamically loaded plugin: ${PluginClass.manifest.name}`);
         return PluginClass.manifest.name; // Return name for event log
@@ -76,13 +91,32 @@ export class PluginRegistry {
     return sorted;
   }
 
-  static unload(pluginId) {
+  static unload(pluginId, gameEngine) {
     const PluginClass = this.plugins.get(pluginId);
     if (PluginClass && PluginClass.cleanup) {
       PluginClass.cleanup();
     }
+    // Remove the plugin's registered gameEngine.on() hooks so its tick
+    // logic stops running once disabled (and won't accumulate on re-enable).
+    if (gameEngine) gameEngine.off(pluginId);
     this.loadedPlugins = this.loadedPlugins.filter(p => p.manifest.id !== pluginId);
     console.log(`Unloaded plugin: ${pluginId}`);
+  }
+
+  // Manually (re-)enable a plugin the player previously disabled.
+  static enable(pluginId, gameEngine) {
+    const PluginClass = this.plugins.get(pluginId);
+    if (!PluginClass) return false;
+    if (this.loadedPlugins.includes(PluginClass)) return false; // guard double-init
+    try {
+      this._initPlugin(PluginClass, gameEngine);
+      this.loadedPlugins.push(PluginClass);
+      console.log(`Manually enabled plugin: ${PluginClass.manifest.name}`);
+      return true;
+    } catch (error) {
+      console.error(`Failed to enable plugin ${pluginId}:`, error);
+      return false;
+    }
   }
 
   static triggerHook(hookName, ...args) {
@@ -116,7 +150,9 @@ export class GameEngine {
     if (!this.upgrades.has(category)) {
       this.upgrades.set(category, []);
     }
-    this.upgrades.get(category).push(upgradeDef);
+    const arr = this.upgrades.get(category);
+    if (arr.some(u => u.id === upgradeDef.id)) return; // idempotent on re-init
+    arr.push(upgradeDef);
   }
 
   addEvent(eventDef) {
@@ -131,7 +167,16 @@ export class GameEngine {
     if (!this.hooks.has(hookName)) {
       this.hooks.set(hookName, []);
     }
+    // Tag the callback with the plugin currently being initialized so
+    // unload() can remove exactly the hooks that plugin registered.
+    callback._pluginOwner = PluginRegistry._initializingPluginId || null;
     this.hooks.get(hookName).push(callback);
+  }
+
+  off(pluginId) {
+    for (const [hookName, callbacks] of this.hooks) {
+      this.hooks.set(hookName, callbacks.filter(cb => cb._pluginOwner !== pluginId));
+    }
   }
 
   emit(hookName, ...args) {

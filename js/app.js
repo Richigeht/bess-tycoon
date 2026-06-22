@@ -1,4 +1,5 @@
 import { GameEngine, PluginRegistry } from '/js/engine.js';
+import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard } from '/js/dashboard.mjs';
 
 const { useState, useEffect } = React;
 
@@ -141,6 +142,7 @@ const DEFAULT_GAME_STATE = {
   certifications: {},
   multipliers: { productionSpeed: 1, usSalesPrice: 1 },
   pluginData: {},
+  dashboard: [],
 };
 
 // === Plugin Loading ===
@@ -536,6 +538,51 @@ const BESSTycoon = () => {
     }));
   };
 
+  const addDashboardPanel = (def) => {
+    setGameState(prev => {
+      if (prev.dashboard.some(panel => panel.metric === def.metric)) return prev;
+      return {
+        ...prev,
+        dashboard: [...prev.dashboard, {
+          metric: def.metric,
+          title: def.title,
+          type: def.type,
+          threshold: def.threshold,
+        }],
+      };
+    });
+  };
+
+  const removeDashboardPanel = (metric) => {
+    setGameState(prev => ({
+      ...prev,
+      dashboard: prev.dashboard.filter(panel => panel.metric !== metric),
+    }));
+  };
+
+  const submitDashboard = (scenario) => {
+    setGameState(prev => {
+      const result = scoreDashboard(scenario, prev.dashboard);
+      const resources = { ...prev.resources };
+      if (result.passed) {
+        if (resources.regulatoryCompliance !== undefined) resources.regulatoryCompliance += 15;
+        if (resources.investorConfidence !== undefined) resources.investorConfidence += 5;
+      }
+      return {
+        ...prev,
+        money: result.passed ? prev.money + scenario.reward : prev.money,
+        techDebt: result.passed ? Math.max(0, prev.techDebt - 5) : prev.techDebt + 3,
+        resources,
+        events: [{
+          text: result.passed
+            ? `📊 ${scenario.name} passed (${result.score}/100). Dashboard accepted.`
+            : `📉 ${scenario.name} failed (${result.score}/100). Missing: ${result.missing.join(', ') || 'better thresholds'}.`,
+          time: Date.now(),
+        }, ...prev.events.slice(0, 9)],
+      };
+    });
+  };
+
   const upgradesData = [
     {
       id: 'intern',
@@ -919,111 +966,108 @@ const BESSTycoon = () => {
                 <BarChart3 className="text-orange-500" size={32} />
                 <div>
                   <h2 className="text-2xl font-bold text-orange-500">Grafana OSS 9.5.2</h2>
-                  <p className="text-gray-400 text-sm">Battery Management Dashboard v47</p>
+                  <p className="text-gray-400 text-sm">Build dashboards auditors might believe.</p>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-4">
+              <div className="grid lg:grid-cols-[260px_1fr] gap-4">
                 <div className="bg-slate-900 p-4 rounded border border-orange-500/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-300">Cell Temperature (Avg)</h3>
-                    <Activity size={16} className="text-orange-400" />
-                  </div>
-                  <div className="text-4xl font-bold text-orange-400 mb-2">
-                    {gameState.metrics.temperature.toFixed(1)}°C
-                  </div>
-                  <div className="h-20 bg-slate-950 rounded flex items-end justify-around p-2">
-                    {[...Array(20)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-gradient-to-t from-orange-600 to-orange-400 rounded-t"
-                        style={{
-                          height: `${Math.random() * 100}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Last updated: now</p>
-                </div>
-
-                <div className="bg-slate-900 p-4 rounded border border-cyan-500/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-300">System Voltage</h3>
-                    <Zap size={16} className="text-cyan-400" />
-                  </div>
-                  <div className="text-4xl font-bold text-cyan-400 mb-2">
-                    {gameState.metrics.voltage.toFixed(2)}V
-                  </div>
-                  <div className="h-20 bg-slate-950 rounded flex items-end justify-around p-2">
-                    {[...Array(20)].map((_, i) => (
-                      <div
-                        key={i}
-                        className="w-1 bg-gradient-to-t from-cyan-600 to-cyan-400 rounded-t"
-                        style={{
-                          height: `${80 + Math.random() * 20}%`,
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Query time: 0.043s</p>
-                </div>
-
-                <div className="bg-slate-900 p-4 rounded border border-green-500/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-300">State of Charge (SoC)</h3>
-                    <Battery size={16} className="text-green-400" />
-                  </div>
-                  <div className="text-4xl font-bold text-green-400 mb-2">
-                    {gameState.metrics.soc.toFixed(0)}%
-                  </div>
-                  <div className="h-20 bg-slate-950 rounded overflow-hidden">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-600 to-green-400 transition-all duration-1000"
-                      style={{ width: `${gameState.metrics.soc}%` }}
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2">Target: 85% ± 5%</p>
-                </div>
-
-                <div className="bg-slate-900 p-4 rounded border border-red-500/30">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-300">Active Alerts</h3>
-                    <AlertTriangle size={16} className="text-red-400" />
-                  </div>
-                  <div className="text-4xl font-bold text-red-400 mb-2">
-                    {gameState.metrics.alerts}
-                  </div>
-                  <div className="text-xs text-gray-400 space-y-1">
-                    <div className="bg-slate-950 p-2 rounded">
-                      <span className="text-yellow-400">⚠</span> Cell voltage drift +0.003V
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded">
-                      <span className="text-yellow-400">⚠</span> Humidity sensor offline
-                    </div>
-                    <div className="bg-slate-950 p-2 rounded">
-                      <span className="text-red-400">🔴</span> Someone left debug logging on
-                    </div>
+                  <h3 className="text-sm font-bold text-orange-400 mb-3">Panel Library</h3>
+                  <div className="space-y-2">
+                    {DASHBOARD_PANELS.map(def => {
+                      const added = gameState.dashboard.some(panel => panel.metric === def.metric);
+                      return (
+                        <button
+                          key={def.metric}
+                          onClick={() => addDashboardPanel(def)}
+                          disabled={added}
+                          className={`w-full text-left p-3 rounded border text-sm transition-all ${
+                            added
+                              ? 'bg-slate-950 border-green-500/30 text-green-400'
+                              : 'bg-slate-800 border-slate-700 text-gray-300 hover:border-orange-500/60'
+                          }`}
+                        >
+                          <div className="font-semibold">{def.title}</div>
+                          <div className="text-xs text-gray-500">{def.type} · threshold {def.threshold}{def.unit}</div>
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 
-                <div className="bg-slate-900 p-4 rounded border border-purple-500/30 md:col-span-2">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-300">Round-Trip Efficiency (Nobody Knows What This Means)</h3>
+                <div className="space-y-4">
+                  <div className="grid md:grid-cols-3 gap-3">
+                    {DASHBOARD_SCENARIOS.map(scenario => {
+                      const result = scoreDashboard(scenario, gameState.dashboard);
+                      return (
+                        <div key={scenario.id} className="bg-slate-900 p-4 rounded border border-cyan-500/30">
+                          <div className="flex items-start justify-between gap-2 mb-2">
+                            <div>
+                              <h3 className="font-bold text-white">{scenario.name}</h3>
+                              <p className="text-xs text-gray-500">Needs: {scenario.needs.join(', ')}</p>
+                            </div>
+                            <div className={`font-mono text-sm ${result.passed ? 'text-green-400' : 'text-yellow-400'}`}>
+                              {result.score}/100
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => submitDashboard(scenario)}
+                            className="w-full px-3 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-sm font-semibold transition-all"
+                          >
+                            Submit Audit
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
-                  <div className="h-32 bg-slate-950 rounded flex items-center justify-center">
-                    <div className="text-center text-gray-500">
-                      <div className="text-6xl mb-2">📊</div>
-                      <p className="text-sm">No Data</p>
-                      <p className="text-xs">(Someone forgot to configure InfluxDB)</p>
-                    </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    {gameState.dashboard.length === 0 && (
+                      <div className="bg-slate-900 p-8 rounded border border-slate-700 md:col-span-2 text-center text-gray-500">
+                        Add panels from the library. Empty dashboards impress nobody.
+                      </div>
+                    )}
+
+                    {gameState.dashboard.map(panel => {
+                      const def = DASHBOARD_PANELS.find(p => p.metric === panel.metric) || panel;
+                      const colors = PANEL_COLOR_CLASSES[def.color] || PANEL_COLOR_CLASSES.cyan;
+                      const value = def.source ? def.source(gameState) : '?';
+                      const barValue = Math.max(5, Math.min(100, Number.parseFloat(value) || 15));
+                      return (
+                        <div key={panel.metric} className={`bg-slate-900 p-4 rounded border ${colors.border}`}>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-gray-300">{panel.title}</h3>
+                            <button
+                              onClick={() => removeDashboardPanel(panel.metric)}
+                              className="text-xs text-gray-500 hover:text-red-400"
+                              title="Remove panel"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <div className={`text-4xl font-bold ${colors.text} mb-2`}>
+                            {value}{def.unit}
+                          </div>
+                          <div className="h-16 bg-slate-950 rounded flex items-end gap-1 p-2">
+                            {[...Array(14)].map((_, i) => (
+                              <div
+                                key={i}
+                                className={`flex-1 ${colors.bar} rounded-t`}
+                                style={{ height: `${Math.max(8, (barValue + i * 7) % 100)}%` }}
+                              />
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-2">Alert threshold: {panel.threshold}{def.unit}</p>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
 
               <div className="mt-4 p-3 bg-red-900/20 rounded border border-red-500/30">
                 <p className="text-xs text-gray-400">
-                  ⚠️ <span className="text-red-400">Alert fatigue detected:</span> You've acknowledged 847 alerts this week. 
-                  Maybe set better thresholds? Or just... ignore them like everyone else? 🤷
+                  ⚠️ <span className="text-red-400">Audit rule:</span> required metrics plus thresholds pass. Pretty screenshots can be judged by Playwright later.
                 </p>
               </div>
             </div>

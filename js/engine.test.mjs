@@ -87,6 +87,31 @@ test('loadAll unloads plugins that became disabled', t => {
   assert.equal(cleanupCalls, 1);
 });
 
+test('disabled dependency reconciliation cleans each loaded plugin once', () => {
+  const engine = new GameEngine();
+  const cleanupCalls = { dependency: 0, dependent: 0 };
+  class Dependency {
+    static manifest = { id: 'dependency', name: 'Dependency', version: '1' };
+    static init() {}
+    static cleanup() { cleanupCalls.dependency += 1; }
+  }
+  class Dependent {
+    static manifest = { id: 'dependent', name: 'Dependent', version: '1', dependencies: ['dependency'] };
+    static init() {}
+    static cleanup() { cleanupCalls.dependent += 1; }
+  }
+  PluginRegistry.register(Dependency);
+  PluginRegistry.register(Dependent);
+  PluginRegistry.loadAll(engine, {});
+  PluginRegistry.disabledPlugins.add('dependency');
+  PluginRegistry.disabledPlugins.add('dependent');
+
+  PluginRegistry.loadAll(engine, {});
+
+  assert.deepEqual(cleanupCalls, { dependency: 1, dependent: 1 });
+  assert.deepEqual(PluginRegistry.loadedPlugins, []);
+});
+
 test('unload removes every owned registration', () => {
   const engine = new GameEngine();
   class Plugin {

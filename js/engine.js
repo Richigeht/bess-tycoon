@@ -43,6 +43,7 @@ export class PluginRegistry {
 
   static loadAll(gameEngine, gameState) {
     for (const PluginClass of [...this.loadedPlugins]) {
+      if (!this.loadedPlugins.includes(PluginClass)) continue;
       const pluginId = PluginClass.manifest.id;
       if (this.disabledPlugins.has(pluginId)) this.unload(pluginId, gameEngine);
     }

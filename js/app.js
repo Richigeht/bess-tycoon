@@ -220,7 +220,7 @@ const BESSTycoon = () => {
         loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
         disabled: [...PluginRegistry.disabledPlugins],
       });
-      PluginRegistry.triggerHook('onBeforeSave', saveData);
+      PluginRegistry.triggerPersistenceHook('onBeforeSave', saveData);
       localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
       if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       setSaveStatus(isAuto ? '💾 Auto-saved' : '✅ Game saved!');
@@ -248,9 +248,9 @@ const BESSTycoon = () => {
           ...newState,
           events: [{ text: '📁 Game loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
         }));
-        PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
-        // Re-check plugin unlock conditions with restored state
+        PluginRegistry.disabledPlugins = new Set(saveData.pluginsDisabled);
         PluginRegistry.loadAll(gameEngine, newState);
+        PluginRegistry.triggerPersistenceHook('onAfterLoad', saveData, newState);
         if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       }
     } catch (error) {
@@ -276,7 +276,7 @@ const BESSTycoon = () => {
       loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
       disabled: [...PluginRegistry.disabledPlugins],
     });
-    PluginRegistry.triggerHook('onBeforeSave', saveData);
+    PluginRegistry.triggerPersistenceHook('onBeforeSave', saveData);
     const saveString = JSON.stringify(saveData);
     const blob = new Blob([saveString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -310,7 +310,9 @@ const BESSTycoon = () => {
           ...newState,
           events: [{ text: '📥 Save file loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
         }));
-        PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
+        PluginRegistry.disabledPlugins = new Set(saveData.pluginsDisabled);
+        PluginRegistry.loadAll(gameEngine, newState);
+        PluginRegistry.triggerPersistenceHook('onAfterLoad', saveData, newState);
         localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
         setSaveStatus('✅ Save imported!');
         setShowExportImport(false);

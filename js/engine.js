@@ -130,6 +130,18 @@ export class PluginRegistry {
       }
     }
   }
+
+  static triggerPersistenceHook(hookName, ...args) {
+    for (const PluginClass of this.plugins.values()) {
+      if (typeof PluginClass[hookName] === 'function') {
+        try {
+          PluginClass[hookName](...args);
+        } catch (error) {
+          console.error(`Error in ${PluginClass.manifest.id}.${hookName}:`, error);
+        }
+      }
+    }
+  }
 }
 
 export class GameEngine {

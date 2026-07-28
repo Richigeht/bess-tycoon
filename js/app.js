@@ -1,7 +1,8 @@
 import { GameEngine, PluginRegistry } from '/js/engine.js';
 import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard } from '/js/dashboard.mjs';
+import { createSaveData, normalizeSaveData, startAutosave } from '/js/save.mjs';
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // Lucide React icons (inline)
 const Battery = ({ size = 24, className = "" }) => (
@@ -177,33 +178,10 @@ async function loadPluginFiles() {
   PluginRegistry.loadAll(gameEngine, DEFAULT_GAME_STATE);
 }
 
-// === Save Data Migration ===
-function migrateSaveData(raw) {
-  if (raw.version === '2.0') return raw;
-  // Migrate from v1.0 / no-version flat format
-  return {
-    version: '2.0',
-    money: raw.money ?? 10000,
-    batteries: raw.batteries ?? 0,
-    batteriesPerSecond: raw.batteriesPerSecond ?? 0,
-    techDebt: raw.techDebt ?? 0,
-    coffee: raw.coffee ?? 0,
-    clickPower: raw.clickPower ?? 1,
-    upgrades: raw.upgrades ?? DEFAULT_GAME_STATE.upgrades,
-    events: raw.events ?? [],
-    achievements: raw.achievements ?? [],
-    grafanaUnlocked: raw.grafanaUnlocked ?? false,
-    metrics: raw.metrics ?? DEFAULT_GAME_STATE.metrics,
-    resources: raw.resources ?? {},
-    certifications: raw.certifications ?? {},
-    multipliers: raw.multipliers ?? { productionSpeed: 1, usSalesPrice: 1 },
-    pluginData: raw.pluginData ?? {},
-    timestamp: raw.timestamp,
-  };
-}
-
 const BESSTycoon = () => {
   const [gameState, setGameState] = useState({ ...DEFAULT_GAME_STATE });
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
   const [activeTab, setActiveTab] = useState('production');
   const [lastSave, setLastSave] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
@@ -230,26 +208,21 @@ const BESSTycoon = () => {
   }, []);
 
   // Auto-save every 10 seconds
-  useEffect(() => {
-    const saveInterval = setInterval(() => {
-      saveGame(true);
-    }, 10000);
-    return () => clearInterval(saveInterval);
-  }, [gameState]);
+  useEffect(() => startAutosave(
+    () => gameStateRef.current,
+    state => saveGame(true, state),
+  ), []);
 
   // Save game using localStorage
-  const saveGame = (isAuto = false) => {
+  const saveGame = (isAuto = false, state = gameStateRef.current) => {
     try {
-      const saveData = {
-        ...gameState,
-        events: gameState.events.slice(0, 10),
-        version: '2.0',
-        timestamp: Date.now(),
-        pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
-      };
+      const saveData = createSaveData(state, {
+        loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
+        disabled: [...PluginRegistry.disabledPlugins],
+      });
       PluginRegistry.triggerHook('onBeforeSave', saveData);
       localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
-      setLastSave(new Date());
+      if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       setSaveStatus(isAuto ? '💾 Auto-saved' : '✅ Game saved!');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (error) {
@@ -264,7 +237,7 @@ const BESSTycoon = () => {
       const saveString = localStorage.getItem('bess-tycoon-save');
       if (saveString) {
         const raw = JSON.parse(saveString);
-        const saveData = migrateSaveData(raw);
+        const saveData = normalizeSaveData(raw, DEFAULT_GAME_STATE);
         const newState = { ...DEFAULT_GAME_STATE };
         for (const key of Object.keys(DEFAULT_GAME_STATE)) {
           if (saveData[key] !== undefined) {
@@ -278,7 +251,7 @@ const BESSTycoon = () => {
         PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
         // Re-check plugin unlock conditions with restored state
         PluginRegistry.loadAll(gameEngine, newState);
-        setLastSave(new Date(saveData.timestamp));
+        if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       }
     } catch (error) {
       console.error('Load failed:', error);
@@ -299,13 +272,10 @@ const BESSTycoon = () => {
 
   // Export save
   const exportSave = () => {
-    const saveData = {
-      ...gameState,
-      events: gameState.events.slice(0, 10),
-      version: '2.0',
-      timestamp: Date.now(),
-      pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
-    };
+    const saveData = createSaveData(gameStateRef.current, {
+      loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
+      disabled: [...PluginRegistry.disabledPlugins],
+    });
     PluginRegistry.triggerHook('onBeforeSave', saveData);
     const saveString = JSON.stringify(saveData);
     const blob = new Blob([saveString], { type: 'application/json' });
@@ -329,10 +299,7 @@ const BESSTycoon = () => {
     reader.onload = (e) => {
       try {
         const raw = JSON.parse(e.target.result);
-        if (typeof raw.money !== 'number') {
-          throw new Error('Invalid save file');
-        }
-        const saveData = migrateSaveData(raw);
+        const saveData = normalizeSaveData(raw, DEFAULT_GAME_STATE);
         const newState = { ...DEFAULT_GAME_STATE };
         for (const key of Object.keys(DEFAULT_GAME_STATE)) {
           if (saveData[key] !== undefined) {

@@ -1036,6 +1036,7 @@ class Phase3GridWarsPlugin {
       cyberBreachActive: this._cyberBreachActive,
       cyberBreachTicks: this._cyberBreachTicks,
       flashCrashTicks: this._flashCrashTicks,
+      frequencyEventCooldown: this._frequencyEventCooldown,
       frequencyMissStreak: this._frequencyMissStreak,
       frequencyBanned: this._frequencyBanned,
       frequencyBanTicks: this._frequencyBanTicks,
@@ -1074,6 +1075,7 @@ class Phase3GridWarsPlugin {
     this._firmwareBugTicks = d?.firmwareBugTicks ?? 0;
     this._cyberBreachActive = d?.cyberBreachActive ?? false;
     this._cyberBreachTicks = d?.cyberBreachTicks ?? 0;
+    this._frequencyEventCooldown = d?.frequencyEventCooldown ?? 0;
     this._frequencyMissStreak = d?.frequencyMissStreak ?? 0;
     this._frequencyBanned = d?.frequencyBanned ?? false;
     this._frequencyBanTicks = d?.frequencyBanTicks ?? 0;

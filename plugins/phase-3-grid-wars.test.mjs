@@ -87,3 +87,16 @@ test('restore preserves zero-valued fields', async () => {
   assert.equal(Plugin._currentPrice, 0);
   assert.equal(Plugin._riskTolerance, 0);
 });
+
+test('frequency cooldown persists and restores deterministically', async () => {
+  const Plugin = await loadClassicPlugin('./phase-3-grid-wars.js', 'Phase3GridWarsPlugin');
+  Plugin._frequencyEventCooldown = 37;
+  const saveData = {};
+  Plugin.onBeforeSave(saveData);
+  assert.equal(saveData.pluginData.phase3.frequencyEventCooldown, 37);
+  Plugin.onAfterLoad({ pluginData: { phase3: { frequencyEventCooldown: 0 } } }, {});
+  assert.equal(Plugin._frequencyEventCooldown, 0);
+  Plugin._frequencyEventCooldown = 37;
+  Plugin.onAfterLoad({ pluginData: {} }, {});
+  assert.equal(Plugin._frequencyEventCooldown, 0);
+});

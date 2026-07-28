@@ -111,7 +111,7 @@ class Phase3GridWarsPlugin {
       category: 'trading',
       cost: { money: 50000 },
       effect: function(state) {
-        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore || 30) + 15);
+        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore ?? 30) + 15);
         state.events = [{ text: "🐍 Python script deployed! It works 60% of the time, every time.", time: Date.now() }, ...state.events.slice(0, 9)];
       },
       unlockCondition: function(state) { return state.batteries >= 100000; },
@@ -125,7 +125,7 @@ class Phase3GridWarsPlugin {
       category: 'trading',
       cost: { money: 200000 },
       effect: function(state) {
-        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore || 30) + 25);
+        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore ?? 30) + 25);
         state.events = [{ text: "🌲 ML Predictor online! Random forest, meet power market.", time: Date.now() }, ...state.events.slice(0, 9)];
       },
       unlockCondition: function(state) { return state.pluginData.upgrade_algo_python; },
@@ -139,7 +139,7 @@ class Phase3GridWarsPlugin {
       category: 'trading',
       cost: { money: 500000 },
       effect: function(state) {
-        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore || 30) + 35);
+        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore ?? 30) + 35);
         state.events = [{ text: "🦀 Quant bot deployed! 10,000 lines of Rust, zero panics (so far).", time: Date.now() }, ...state.events.slice(0, 9)];
       },
       unlockCondition: function(state) { return state.pluginData.upgrade_algo_ml; },
@@ -153,7 +153,7 @@ class Phase3GridWarsPlugin {
       category: 'trading',
       cost: { money: 2000000 },
       effect: function(state) {
-        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore || 30) + 45);
+        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore ?? 30) + 45);
         state.events = [{ text: "🧠 Deep RL Agent active! It's teaching itself. We think that's good?", time: Date.now() }, ...state.events.slice(0, 9)];
       },
       unlockCondition: function(state) { return state.pluginData.upgrade_algo_quant; },
@@ -167,7 +167,7 @@ class Phase3GridWarsPlugin {
       category: 'trading',
       cost: { money: 10000000 },
       effect: function(state) {
-        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore || 30) + 50);
+        state.resources.algorithmScore = Math.min(100, (state.resources.algorithmScore ?? 30) + 50);
         state.events = [{ text: "🔮 The Oracle activated! Might be insider trading. Might be magic. Both?", time: Date.now() }, ...state.events.slice(0, 9)];
       },
       unlockCondition: function(state) {
@@ -414,9 +414,9 @@ class Phase3GridWarsPlugin {
       render: function(gs) {
         var p = Phase3GridWarsPlugin;
         var price = p._currentPrice;
-        var algoScore = gs.resources.algorithmScore || 30;
+        var algoScore = gs.resources.algorithmScore ?? 30;
         var frCredits = gs.resources.frequencyCredits || 0;
-        var gridStab = gs.resources.gridStability || 50;
+        var gridStab = gs.resources.gridStability ?? 50;
         var mwhTraded = gs.resources.mwhTraded || 0;
         var carbon = gs.resources.carbonCredits || 0;
 
@@ -599,7 +599,7 @@ class Phase3GridWarsPlugin {
   static _getMarketMultiplier(pd) {
     var mult = 1.0; // Day-ahead is always active
     if (pd.upgrade_market_realtime) mult += 0.5;
-    if (pd.upgrade_market_frequency) mult += 2.0;
+    if (pd.upgrade_market_frequency && !this._frequencyBanned) mult += 2.0;
     if (pd.upgrade_market_voltage) mult += 1.0;
     if (pd.upgrade_market_blackstart) mult += 4.0;
     if (pd.upgrade_market_demand_response) mult += 1.5;
@@ -655,9 +655,6 @@ class Phase3GridWarsPlugin {
 
     // === PRICE SIMULATION ===
     this._currentPrice = this._simulatePrice(this._tickCounter);
-    this._priceHistory.push(this._currentPrice);
-    if (this._priceHistory.length > 60) this._priceHistory.shift();
-
     // === FLASH CRASH EVENT ===
     if (this._flashCrashActive) {
       this._flashCrashTicks++;
@@ -682,13 +679,13 @@ class Phase3GridWarsPlugin {
       }
       if (this._polarVortexStage === 2 && this._polarVortexTicks >= 90) {
         this._polarVortexStage = 3;
-        gameState.resources.gridStability = Math.max(0, (gameState.resources.gridStability || 50) - 30);
+        gameState.resources.gridStability = Math.max(0, (gameState.resources.gridStability ?? 50) - 30);
         gameState.events = [{ text: "🥶 Polar Vortex Stage 3: CRITICAL SHORTAGE. Grid stability at " + Math.round(gameState.resources.gridStability) + "!", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
       if (this._polarVortexStage === 3 && this._polarVortexTicks >= 180) {
         this._polarVortexStage = 0;
         this._polarVortexTicks = 0;
-        gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability || 50) + 20);
+        gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability ?? 50) + 20);
         gameState.events = [{ text: "🌡️ Polar vortex ending. Prices normalizing. We survived. Barely.", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
       if (this._polarVortexStage >= 2) {
@@ -707,6 +704,9 @@ class Phase3GridWarsPlugin {
         gameState.events = [{ text: "☀️ Solar flood ended. Prices recovering. Hope you charged up!", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
     }
+
+    this._priceHistory.push(this._currentPrice);
+    if (this._priceHistory.length > 60) this._priceHistory.shift();
 
     // === FIRMWARE BUG ===
     if (this._firmwareBugActive) {
@@ -739,7 +739,7 @@ class Phase3GridWarsPlugin {
     }
 
     // === AUTOMATED TRADING (core revenue loop) ===
-    var algoScore = gameState.resources.algorithmScore || 30;
+    var algoScore = gameState.resources.algorithmScore ?? 30;
     var marketMult = this._getMarketMultiplier(pd);
     var gridsConnected = this._connectedGrids.length;
 
@@ -748,7 +748,9 @@ class Phase3GridWarsPlugin {
       if (this._tickCounter % 5 === 0) {
         var efficiency = algoScore / 100;
         var tradeSize = gridsConnected * 2; // MWh per trade
-        var priceSpread = this._currentPrice * efficiency * 0.15; // profit margin
+        var priceSpread = this._currentPrice < 0
+          ? Math.abs(this._currentPrice)
+          : this._currentPrice * efficiency * 0.15;
         var firmwarePenalty = this._firmwareBugActive && Math.random() < 0.1 ? -2 : 1;
         var tradeProfit = priceSpread * tradeSize * marketMult * firmwarePenalty;
 
@@ -811,12 +813,12 @@ class Phase3GridWarsPlugin {
           var payment = isFast ? 5000 : 2000;
           gameState.resources.frequencyCredits = (gameState.resources.frequencyCredits || 0) + credits;
           gameState.money += payment;
-          gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability || 50) + 1);
+          gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability ?? 50) + 1);
           this._frequencyMissStreak = 0;
           if (isFast) this._fastFrequencyResponses++;
         } else {
           gameState.resources.frequencyCredits = Math.max(0, (gameState.resources.frequencyCredits || 0) - 15);
-          gameState.resources.gridStability = Math.max(0, (gameState.resources.gridStability || 50) - 3);
+          gameState.resources.gridStability = Math.max(0, (gameState.resources.gridStability ?? 50) - 3);
           this._frequencyMissStreak++;
 
           if (this._frequencyMissStreak >= 3) {
@@ -833,13 +835,13 @@ class Phase3GridWarsPlugin {
 
     // === GRID STABILITY NATURAL DRIFT ===
     gameState.resources.gridStability = Math.max(0, Math.min(100,
-      (gameState.resources.gridStability || 50) + (Math.random() - 0.5) * 2
+      (gameState.resources.gridStability ?? 50) + (Math.random() - 0.5) * 2
     ));
 
     // Grid stability bonus from more connected grids
     if (gridsConnected >= 3) {
       gameState.resources.gridStability = Math.min(100,
-        (gameState.resources.gridStability || 50) + 0.1 * gridsConnected
+        (gameState.resources.gridStability ?? 50) + 0.1 * gridsConnected
       );
     }
 
@@ -873,28 +875,28 @@ class Phase3GridWarsPlugin {
       }
 
       // Polar Vortex (0.3% per 10 ticks)
-      if (eventRoll > 0.995 && this._polarVortexStage === 0 && !this._flashCrashActive) {
+      else if (eventRoll > 0.995 && this._polarVortexStage === 0 && !this._flashCrashActive) {
         this._polarVortexStage = 1;
         this._polarVortexTicks = 0;
         gameState.events = [{ text: "🥶 POLAR VORTEX INCOMING! Temperature dropping. Prices starting to rise...", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
 
       // Solar Flood (0.8% per 10 ticks)
-      if (eventRoll > 0.99 && eventRoll <= 0.998 && !this._solarFloodActive && !this._flashCrashActive) {
+      else if (eventRoll > 0.99 && eventRoll <= 0.998 && !this._solarFloodActive && !this._flashCrashActive) {
         this._solarFloodActive = true;
         this._solarFloodTicks = 0;
         gameState.events = [{ text: "☀️ SOLAR FLOOD! Negative prices! You get PAID to charge! Go go go!", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
 
       // Firmware Bug (0.3% per 10 ticks, requires advanced algo)
-      if (eventRoll > 0.003 && eventRoll < 0.006 && !this._firmwareBugActive && pd.upgrade_algo_ml) {
+      else if (eventRoll > 0.003 && eventRoll < 0.006 && !this._firmwareBugActive && pd.upgrade_algo_ml) {
         this._firmwareBugActive = true;
         this._firmwareBugTicks = 0;
         gameState.events = [{ text: "🐛 INVERTER FIRMWARE BUG! Race condition detected. 10% of trades executing backwards!", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
 
       // Cybersecurity Breach (0.2% per 10 ticks, requires 3+ market connections)
-      if (eventRoll > 0.006 && eventRoll < 0.008 && !this._cyberBreachActive && gridsConnected >= 3) {
+      else if (eventRoll > 0.006 && eventRoll < 0.008 && !this._cyberBreachActive && gridsConnected >= 3) {
         this._cyberBreachActive = true;
         this._cyberBreachTicks = 0;
         gameState.money -= 200000; // immediate audit cost
@@ -904,19 +906,8 @@ class Phase3GridWarsPlugin {
         gameState.events = [{ text: "🔓 CYBERSECURITY BREACH! Hackers in your BMS! -$200k audit + ongoing losses. Password was 'admin'.", time: Date.now() }, ...gameState.events.slice(0, 9)];
       }
 
-      // Rolling Blackout (when grid stability is low)
-      if ((gameState.resources.gridStability || 50) < 25 && Math.random() < 0.1 && pd.upgrade_market_blackstart) {
-        gameState.money += 1000000;
-        gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability || 50) + 30);
-        this._blackStartPerformed = true;
-        for (var g2 in this._gridRelationships) {
-          this._gridRelationships[g2] += 15;
-        }
-        gameState.events = [{ text: "🌑 ROLLING BLACKOUT! Black start activated! You saved the grid. +$1M, +relationships!", time: Date.now() }, ...gameState.events.slice(0, 9)];
-      }
-
       // Flavor events (2% per 10 ticks)
-      if (eventRoll > 0.01 && eventRoll < 0.03) {
+      else if (eventRoll > 0.01 && eventRoll < 0.03) {
         var flavors = [
           "💰 Bought at $20, sold at $180. You're a genius!",
           "📉 Algorithm confused by daylight savings time. Sold at a loss for an hour.",
@@ -933,6 +924,17 @@ class Phase3GridWarsPlugin {
           time: Date.now()
         }, ...gameState.events.slice(0, 9)];
       }
+
+      // Rolling Blackout (when grid stability is low)
+      if ((gameState.resources.gridStability ?? 50) < 25 && Math.random() < 0.1 && pd.upgrade_market_blackstart) {
+        gameState.money += 1000000;
+        gameState.resources.gridStability = Math.min(100, (gameState.resources.gridStability ?? 50) + 30);
+        this._blackStartPerformed = true;
+        for (var g2 in this._gridRelationships) {
+          this._gridRelationships[g2] += 15;
+        }
+        gameState.events = [{ text: "🌑 ROLLING BLACKOUT! Black start activated! You saved the grid. +$1M, +relationships!", time: Date.now() }, ...gameState.events.slice(0, 9)];
+      }
     }
 
     // === SEC INVESTIGATION (algo score too high) ===
@@ -947,7 +949,7 @@ class Phase3GridWarsPlugin {
     // === INVESTOR CONFIDENCE from grid participation ===
     if (gridsConnected >= 3 && gameState.resources.investorConfidence !== undefined) {
       gameState.resources.investorConfidence = Math.min(100,
-        (gameState.resources.investorConfidence || 50) + 0.02 * gridsConnected
+        (gameState.resources.investorConfidence ?? 50) + 0.02 * gridsConnected
       );
     }
 

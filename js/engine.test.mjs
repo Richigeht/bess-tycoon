@@ -112,6 +112,56 @@ test('disabled dependency reconciliation cleans each loaded plugin once', () => 
   assert.deepEqual(PluginRegistry.loadedPlugins, []);
 });
 
+test('lower-progress load unloads ineligible plugins and their dependents', () => {
+  const engine = new GameEngine();
+  const cleaned = [];
+  class Dependency {
+    static manifest = {
+      id: 'dependency',
+      name: 'Dependency',
+      version: '1',
+      unlockCondition: state => state.eligible,
+    };
+    static init(e) {
+      e.addResource({ id: 'resource' });
+      e.addTab({ id: 'tab' });
+      e.on('tick', () => {});
+    }
+    static cleanup() { cleaned.push('dependency'); }
+  }
+  class Dependent {
+    static manifest = {
+      id: 'dependent',
+      name: 'Dependent',
+      version: '1',
+      dependencies: ['dependency'],
+    };
+    static init(e) {
+      e.addUpgrade({ id: 'upgrade' });
+      e.addEvent({ id: 'event' });
+      e.addAction('action', state => state);
+      e.on('tick', () => {});
+    }
+    static cleanup() { cleaned.push('dependent'); }
+  }
+  PluginRegistry.register(Dependency);
+  PluginRegistry.register(Dependent);
+  PluginRegistry.loadAll(engine, { eligible: true });
+
+  PluginRegistry.loadAll(engine, { eligible: false });
+
+  assert.deepEqual(PluginRegistry.loadedPlugins, []);
+  assert.deepEqual(cleaned, ['dependent', 'dependency']);
+  assert.deepEqual({
+    resources: engine.resources.size,
+    upgrades: [...engine.upgrades.values()].flat().length,
+    events: engine.events.size,
+    tabs: engine.tabs.size,
+    actions: engine.actions.size,
+    hooks: [...engine.hooks.values()].flat().length,
+  }, { resources: 0, upgrades: 0, events: 0, tabs: 0, actions: 0, hooks: 0 });
+});
+
 test('unload removes every owned registration', () => {
   const engine = new GameEngine();
   class Plugin {

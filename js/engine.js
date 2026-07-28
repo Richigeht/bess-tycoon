@@ -45,7 +45,9 @@ export class PluginRegistry {
     for (const PluginClass of [...this.loadedPlugins]) {
       if (!this.loadedPlugins.includes(PluginClass)) continue;
       const pluginId = PluginClass.manifest.id;
-      if (this.disabledPlugins.has(pluginId)) this.unload(pluginId, gameEngine);
+      if (this.disabledPlugins.has(pluginId) || !this._canLoad(PluginClass, gameState)) {
+        this.unload(pluginId, gameEngine);
+      }
     }
     const loadOrder = this.resolveDependencies();
     for (const pluginId of loadOrder) {

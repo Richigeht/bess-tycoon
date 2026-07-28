@@ -35,9 +35,9 @@
     "semantic_hash": "c344ade9c9eb9109f84974f13fd65d03"
   },
   "/home/sevenup/vscode/bess-tycoon/plugins/phase-3-grid-wars.js": {
-    "mtime": 1781989737.747953,
-    "ast_hash": "1f334d934349d6f89f12a6633a6dc7f0",
-    "semantic_hash": "1f334d934349d6f89f12a6633a6dc7f0"
+    "mtime": 1782065855.3765793,
+    "ast_hash": "76b922a348d410024831aec983a58d59",
+    "semantic_hash": "76b922a348d410024831aec983a58d59"
   },
   "/home/sevenup/vscode/bess-tycoon/README.md": {
     "mtime": 1781989737.7475317,
@@ -45,9 +45,9 @@
     "semantic_hash": "7070da77289fcf4edd725d55c646542a"
   },
   "/home/sevenup/vscode/bess-tycoon/index.html": {
-    "mtime": 1781989737.7475772,
-    "ast_hash": "4d1abb8989cd7a2fb6e7422b8fa0dbce",
-    "semantic_hash": "4d1abb8989cd7a2fb6e7422b8fa0dbce"
+    "mtime": 1782065855.373393,
+    "ast_hash": "892397fe8e101d9d7050281cbc9a99d6",
+    "semantic_hash": "892397fe8e101d9d7050281cbc9a99d6"
   },
   "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_2_SCALE_UP.md": {
     "mtime": 1781989737.7481306,
@@ -63,5 +63,30 @@
     "mtime": 1781989737.748318,
     "ast_hash": "c4d1635ca5a5c2c4f5e018b67b938087",
     "semantic_hash": "c4d1635ca5a5c2c4f5e018b67b938087"
+  },
+  "/home/sevenup/vscode/bess-tycoon/.claude/settings.local.json": {
+    "mtime": 1782159875.243252,
+    "ast_hash": "353699a93084046c4a6d69a5da6198c0",
+    "semantic_hash": "353699a93084046c4a6d69a5da6198c0"
+  },
+  "/home/sevenup/vscode/bess-tycoon/js/app.js": {
+    "mtime": 1782081196.7714443,
+    "ast_hash": "48efeb6e12df0bd749827f64c6ca1e04",
+    "semantic_hash": "48efeb6e12df0bd749827f64c6ca1e04"
+  },
+  "/home/sevenup/vscode/bess-tycoon/js/dashboard.mjs": {
+    "mtime": 1782081195.874435,
+    "ast_hash": "c6801a7b05d719b77b37715b9f09a0db",
+    "semantic_hash": "c6801a7b05d719b77b37715b9f09a0db"
+  },
+  "/home/sevenup/vscode/bess-tycoon/js/dashboard.test.mjs": {
+    "mtime": 1782081197.1474483,
+    "ast_hash": "2471c1f30886634beaca308e7b6bf4f8",
+    "semantic_hash": "2471c1f30886634beaca308e7b6bf4f8"
+  },
+  "/home/sevenup/vscode/bess-tycoon/js/engine.js": {
+    "mtime": 1782065855.3750532,
+    "ast_hash": "f2281cf39884f19d662b5117a56193d2",
+    "semantic_hash": "f2281cf39884f19d662b5117a56193d2"
   }
 }

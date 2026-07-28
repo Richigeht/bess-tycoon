@@ -4,22 +4,527 @@
   "graph": {
     "hyperedges": [
       {
-        "id": "plugin_init_tick_hooks",
-        "label": "All plugin init() functions registering tick hooks with no dedup guard",
+        "id": "plugin_lifecycle_system",
+        "label": "Plugin Lifecycle System",
         "nodes": [
-          "plugins_example_plugin_init",
-          "plugins_phase_2_scale_up_init",
-          "plugins_phase_3_grid_wars_init",
-          "indexhtml_gameengine_hooks_map"
+          "js_engine_pluginregistry",
+          "js_engine_gameengine",
+          "plugins_phase_3_grid_wars_phase3gridwarsplugin"
+        ],
+        "relation": "implement",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "js/engine.js"
+      },
+      {
+        "id": "save_load_persistence_pipeline",
+        "label": "Save/Load Persistence Pipeline",
+        "nodes": [
+          "js_app_savegame",
+          "js_app_loadgame",
+          "js_app_migratesavedata"
         ],
         "relation": "participate_in",
-        "confidence": "INFERRED",
-        "confidence_score": 0.85,
-        "source_file": "index.html"
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "js/app.js"
+      },
+      {
+        "id": "monitoring_dashboard_subsystem",
+        "label": "Monitoring Dashboard Subsystem",
+        "nodes": [
+          "js_dashboard_dashboard_panels",
+          "js_dashboard_dashboard_scenarios",
+          "js_dashboard_scoredashboard"
+        ],
+        "relation": "form",
+        "confidence": "EXTRACTED",
+        "confidence_score": 1.0,
+        "source_file": "js/dashboard.mjs"
       }
     ]
   },
   "nodes": [
+    {
+      "label": "app.js",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_app",
+      "community": 1,
+      "norm_label": "app.js"
+    },
+    {
+      "label": "Battery()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L7",
+      "_origin": "ast",
+      "id": "js_app_battery",
+      "community": 1,
+      "norm_label": "battery()"
+    },
+    {
+      "label": "Zap()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L14",
+      "_origin": "ast",
+      "id": "js_app_zap",
+      "community": 1,
+      "norm_label": "zap()"
+    },
+    {
+      "label": "DollarSign()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "js_app_dollarsign",
+      "community": 1,
+      "norm_label": "dollarsign()"
+    },
+    {
+      "label": "AlertTriangle()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L27",
+      "_origin": "ast",
+      "id": "js_app_alerttriangle",
+      "community": 1,
+      "norm_label": "alerttriangle()"
+    },
+    {
+      "label": "TrendingUp()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L35",
+      "_origin": "ast",
+      "id": "js_app_trendingup",
+      "community": 1,
+      "norm_label": "trendingup()"
+    },
+    {
+      "label": "Coffee()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L42",
+      "_origin": "ast",
+      "id": "js_app_coffee",
+      "community": 1,
+      "norm_label": "coffee()"
+    },
+    {
+      "label": "BarChart3()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L52",
+      "_origin": "ast",
+      "id": "js_app_barchart3",
+      "community": 1,
+      "norm_label": "barchart3()"
+    },
+    {
+      "label": "Activity()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L61",
+      "_origin": "ast",
+      "id": "js_app_activity",
+      "community": 1,
+      "norm_label": "activity()"
+    },
+    {
+      "label": "Save()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L67",
+      "_origin": "ast",
+      "id": "js_app_save",
+      "community": 1,
+      "norm_label": "save()"
+    },
+    {
+      "label": "RotateCcw()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L75",
+      "_origin": "ast",
+      "id": "js_app_rotateccw",
+      "community": 1,
+      "norm_label": "rotateccw()"
+    },
+    {
+      "label": "Download()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L82",
+      "_origin": "ast",
+      "id": "js_app_download",
+      "community": 1,
+      "norm_label": "download()"
+    },
+    {
+      "label": "Upload()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L90",
+      "_origin": "ast",
+      "id": "js_app_upload",
+      "community": 1,
+      "norm_label": "upload()"
+    },
+    {
+      "label": "gameEngine",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L98",
+      "_origin": "ast",
+      "id": "js_app_gameengine",
+      "community": 1,
+      "norm_label": "gameengine"
+    },
+    {
+      "label": "CORE_RESOURCE_IDS",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L103",
+      "_origin": "ast",
+      "id": "js_app_core_resource_ids",
+      "community": 1,
+      "norm_label": "core_resource_ids"
+    },
+    {
+      "label": "DEFAULT_GAME_STATE",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L117",
+      "_origin": "ast",
+      "id": "js_app_default_game_state",
+      "community": 3,
+      "norm_label": "default_game_state"
+    },
+    {
+      "label": "loadPluginFiles()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L149",
+      "_origin": "ast",
+      "id": "js_app_loadpluginfiles",
+      "community": 0,
+      "norm_label": "loadpluginfiles()"
+    },
+    {
+      "label": "migrateSaveData()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L181",
+      "_origin": "ast",
+      "id": "js_app_migratesavedata",
+      "community": 0,
+      "norm_label": "migratesavedata()"
+    },
+    {
+      "label": "BESSTycoon()",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "L205",
+      "_origin": "ast",
+      "id": "js_app_besstycoon",
+      "community": 0,
+      "norm_label": "besstycoon()"
+    },
+    {
+      "label": "dashboard.mjs",
+      "file_type": "code",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_dashboard",
+      "community": 3,
+      "norm_label": "dashboard.mjs"
+    },
+    {
+      "label": "DASHBOARD_PANELS",
+      "file_type": "code",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_dashboard_dashboard_panels",
+      "community": 3,
+      "norm_label": "dashboard_panels"
+    },
+    {
+      "label": "DASHBOARD_SCENARIOS",
+      "file_type": "code",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L10",
+      "_origin": "ast",
+      "id": "js_dashboard_dashboard_scenarios",
+      "community": 3,
+      "norm_label": "dashboard_scenarios"
+    },
+    {
+      "label": "PANEL_COLOR_CLASSES",
+      "file_type": "code",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L16",
+      "_origin": "ast",
+      "id": "js_dashboard_panel_color_classes",
+      "community": 3,
+      "norm_label": "panel_color_classes"
+    },
+    {
+      "label": "scoreDashboard()",
+      "file_type": "code",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L24",
+      "_origin": "ast",
+      "id": "js_dashboard_scoredashboard",
+      "community": 3,
+      "norm_label": "scoredashboard()"
+    },
+    {
+      "label": "dashboard.test.mjs",
+      "file_type": "code",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_dashboard_test",
+      "community": 3,
+      "norm_label": "dashboard.test.mjs"
+    },
+    {
+      "label": "investor",
+      "file_type": "code",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L4",
+      "_origin": "ast",
+      "id": "js_dashboard_test_investor",
+      "community": 3,
+      "norm_label": "investor"
+    },
+    {
+      "label": "good",
+      "file_type": "code",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L5",
+      "_origin": "ast",
+      "id": "js_dashboard_test_good",
+      "community": 3,
+      "norm_label": "good"
+    },
+    {
+      "label": "bad",
+      "file_type": "code",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L6",
+      "_origin": "ast",
+      "id": "js_dashboard_test_bad",
+      "community": 3,
+      "norm_label": "bad"
+    },
+    {
+      "label": "engine.js",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L1",
+      "_origin": "ast",
+      "id": "js_engine",
+      "community": 4,
+      "norm_label": "engine.js"
+    },
+    {
+      "label": "PluginRegistry",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L3",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry",
+      "community": 0,
+      "norm_label": "pluginregistry"
+    },
+    {
+      "label": "._initPlugin()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L11",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_initplugin",
+      "community": 0,
+      "norm_label": "._initplugin()"
+    },
+    {
+      "label": ".register()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L20",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_register",
+      "community": 0,
+      "norm_label": ".register()"
+    },
+    {
+      "label": ".loadAll()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L36",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_loadall",
+      "community": 0,
+      "norm_label": ".loadall()"
+    },
+    {
+      "label": ".checkAndLoadNewPlugins()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L57",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_checkandloadnewplugins",
+      "community": 0,
+      "norm_label": ".checkandloadnewplugins()"
+    },
+    {
+      "label": ".resolveDependencies()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L74",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_resolvedependencies",
+      "community": 0,
+      "norm_label": ".resolvedependencies()"
+    },
+    {
+      "label": ".unload()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L94",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_unload",
+      "community": 4,
+      "norm_label": ".unload()"
+    },
+    {
+      "label": ".enable()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L107",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_enable",
+      "community": 0,
+      "norm_label": ".enable()"
+    },
+    {
+      "label": ".triggerHook()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L122",
+      "_origin": "ast",
+      "id": "js_engine_pluginregistry_triggerhook",
+      "community": 0,
+      "norm_label": ".triggerhook()"
+    },
+    {
+      "label": "GameEngine",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L135",
+      "_origin": "ast",
+      "id": "js_engine_gameengine",
+      "community": 4,
+      "norm_label": "gameengine"
+    },
+    {
+      "label": ".constructor()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L136",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_constructor",
+      "community": 4,
+      "norm_label": ".constructor()"
+    },
+    {
+      "label": ".addResource()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L144",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_addresource",
+      "community": 4,
+      "norm_label": ".addresource()"
+    },
+    {
+      "label": ".addUpgrade()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L148",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_addupgrade",
+      "community": 4,
+      "norm_label": ".addupgrade()"
+    },
+    {
+      "label": ".addEvent()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L158",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_addevent",
+      "community": 4,
+      "norm_label": ".addevent()"
+    },
+    {
+      "label": ".addTab()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L162",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_addtab",
+      "community": 4,
+      "norm_label": ".addtab()"
+    },
+    {
+      "label": ".on()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L166",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_on",
+      "community": 4,
+      "norm_label": ".on()"
+    },
+    {
+      "label": ".off()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L176",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_off",
+      "community": 4,
+      "norm_label": ".off()"
+    },
+    {
+      "label": ".emit()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L182",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_emit",
+      "community": 4,
+      "norm_label": ".emit()"
+    },
+    {
+      "label": ".triggerEvent()",
+      "file_type": "code",
+      "source_file": "js/engine.js",
+      "source_location": "L189",
+      "_origin": "ast",
+      "id": "js_engine_gameengine_triggerevent",
+      "community": 4,
+      "norm_label": ".triggerevent()"
+    },
     {
       "label": "example-plugin.js",
       "file_type": "code",
@@ -27,7 +532,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "plugins_example_plugin",
-      "community": 3,
+      "community": 6,
       "norm_label": "example-plugin.js"
     },
     {
@@ -37,7 +542,7 @@
       "source_location": "L4",
       "_origin": "ast",
       "id": "plugins_example_plugin_exampleplugin",
-      "community": 3,
+      "community": 6,
       "norm_label": "exampleplugin"
     },
     {
@@ -47,7 +552,7 @@
       "source_location": "L16",
       "_origin": "ast",
       "id": "plugins_example_plugin_exampleplugin_init",
-      "community": 3,
+      "community": 6,
       "norm_label": ".init()"
     },
     {
@@ -57,7 +562,7 @@
       "source_location": "L51",
       "_origin": "ast",
       "id": "plugins_example_plugin_exampleplugin_ontick",
-      "community": 3,
+      "community": 6,
       "norm_label": ".ontick()"
     },
     {
@@ -67,7 +572,7 @@
       "source_location": "L58",
       "_origin": "ast",
       "id": "plugins_example_plugin_exampleplugin_onbeforesave",
-      "community": 3,
+      "community": 6,
       "norm_label": ".onbeforesave()"
     },
     {
@@ -77,7 +582,7 @@
       "source_location": "L65",
       "_origin": "ast",
       "id": "plugins_example_plugin_exampleplugin_onafterload",
-      "community": 3,
+      "community": 6,
       "norm_label": ".onafterload()"
     },
     {
@@ -107,7 +612,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up",
-      "community": 1,
+      "community": 5,
       "norm_label": "phase-2-scale-up.js"
     },
     {
@@ -117,7 +622,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin",
-      "community": 1,
+      "community": 5,
       "norm_label": "phase2scaleupplugin"
     },
     {
@@ -127,7 +632,7 @@
       "source_location": "L30",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_init",
-      "community": 1,
+      "community": 5,
       "norm_label": ".init()"
     },
     {
@@ -137,7 +642,7 @@
       "source_location": "L497",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_ontick",
-      "community": 1,
+      "community": 5,
       "norm_label": ".ontick()"
     },
     {
@@ -147,7 +652,7 @@
       "source_location": "L643",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_triggerphase2event",
-      "community": 1,
+      "community": 5,
       "norm_label": "._triggerphase2event()"
     },
     {
@@ -157,7 +662,7 @@
       "source_location": "L739",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_checkachievements",
-      "community": 1,
+      "community": 5,
       "norm_label": "._checkachievements()"
     },
     {
@@ -167,7 +672,7 @@
       "source_location": "L778",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_onbeforesave",
-      "community": 1,
+      "community": 5,
       "norm_label": ".onbeforesave()"
     },
     {
@@ -177,7 +682,7 @@
       "source_location": "L794",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_onafterload",
-      "community": 1,
+      "community": 5,
       "norm_label": ".onafterload()"
     },
     {
@@ -187,7 +692,7 @@
       "source_location": "L810",
       "_origin": "ast",
       "id": "plugins_phase_2_scale_up_phase2scaleupplugin_cleanup",
-      "community": 1,
+      "community": 5,
       "norm_label": ".cleanup()"
     },
     {
@@ -197,7 +702,7 @@
       "source_location": "L1",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars",
-      "community": 0,
+      "community": 2,
       "norm_label": "phase-3-grid-wars.js"
     },
     {
@@ -207,7 +712,7 @@
       "source_location": "L5",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin",
-      "community": 0,
+      "community": 2,
       "norm_label": "phase3gridwarsplugin"
     },
     {
@@ -217,7 +722,7 @@
       "source_location": "L57",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_init",
-      "community": 0,
+      "community": 2,
       "norm_label": ".init()"
     },
     {
@@ -227,7 +732,7 @@
       "source_location": "L573",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_getcompletionpct",
-      "community": 0,
+      "community": 2,
       "norm_label": "._getcompletionpct()"
     },
     {
@@ -237,7 +742,7 @@
       "source_location": "L589",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_getgrade",
-      "community": 0,
+      "community": 2,
       "norm_label": "._getgrade()"
     },
     {
@@ -247,7 +752,7 @@
       "source_location": "L599",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_getmarketmultiplier",
-      "community": 0,
+      "community": 2,
       "norm_label": "._getmarketmultiplier()"
     },
     {
@@ -257,7 +762,7 @@
       "source_location": "L610",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_getfreqtier",
-      "community": 0,
+      "community": 2,
       "norm_label": "._getfreqtier()"
     },
     {
@@ -267,7 +772,7 @@
       "source_location": "L619",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_simulateprice",
-      "community": 0,
+      "community": 2,
       "norm_label": "._simulateprice()"
     },
     {
@@ -277,7 +782,7 @@
       "source_location": "L640",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_ontick",
-      "community": 0,
+      "community": 2,
       "norm_label": ".ontick()"
     },
     {
@@ -287,7 +792,7 @@
       "source_location": "L959",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_checkachievements",
-      "community": 0,
+      "community": 2,
       "norm_label": "._checkachievements()"
     },
     {
@@ -297,7 +802,7 @@
       "source_location": "L1015",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_onbeforesave",
-      "community": 0,
+      "community": 2,
       "norm_label": ".onbeforesave()"
     },
     {
@@ -307,7 +812,7 @@
       "source_location": "L1053",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_onafterload",
-      "community": 0,
+      "community": 2,
       "norm_label": ".onafterload()"
     },
     {
@@ -317,297 +822,986 @@
       "source_location": "L1090",
       "_origin": "ast",
       "id": "plugins_phase_3_grid_wars_phase3gridwarsplugin_cleanup",
-      "community": 0,
-      "norm_label": ".cleanup()"
-    },
-    {
-      "label": "PluginRegistry",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry",
-      "community": 6,
-      "norm_label": "pluginregistry"
-    },
-    {
-      "label": "PluginRegistry.loadAll",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_loadall",
-      "community": 4,
-      "norm_label": "pluginregistry.loadall"
-    },
-    {
-      "label": "PluginRegistry.checkAndLoadNewPlugins",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_checkandloadnewplugins",
-      "community": 4,
-      "norm_label": "pluginregistry.checkandloadnewplugins"
-    },
-    {
-      "label": "PluginRegistry.loadedPlugins array",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_loadedplugins",
-      "community": 4,
-      "norm_label": "pluginregistry.loadedplugins array"
-    },
-    {
-      "label": "PluginRegistry.register",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_register",
-      "community": 5,
-      "norm_label": "pluginregistry.register"
-    },
-    {
-      "label": "PluginRegistry.resolveDependencies",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_resolvedependencies",
-      "community": 10,
-      "norm_label": "pluginregistry.resolvedependencies"
-    },
-    {
-      "label": "PluginRegistry.unload",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_unload",
-      "community": 12,
-      "norm_label": "pluginregistry.unload"
-    },
-    {
-      "label": "PluginRegistry.triggerHook",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_pluginregistry_triggerhook",
-      "community": 11,
-      "norm_label": "pluginregistry.triggerhook"
-    },
-    {
-      "label": "GameEngine",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_gameengine",
-      "community": 8,
-      "norm_label": "gameengine"
-    },
-    {
-      "label": "GameEngine.hooks Map (no-dedup push)",
-      "file_type": "rationale",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_gameengine_hooks_map",
-      "community": 4,
-      "norm_label": "gameengine.hooks map (no-dedup push)"
-    },
-    {
-      "label": "GameEngine.on",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_gameengine_on",
       "community": 2,
-      "norm_label": "gameengine.on"
-    },
-    {
-      "label": "GameEngine.emit",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_gameengine_emit",
-      "community": 9,
-      "norm_label": "gameengine.emit"
-    },
-    {
-      "label": "loadPluginFiles (manifest fetch + script injection)",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_loadpluginfiles",
-      "community": 5,
-      "norm_label": "loadpluginfiles (manifest fetch + script injection)"
-    },
-    {
-      "label": "loadGame (calls loadAll again after restoring save)",
-      "file_type": "code",
-      "source_file": "index.html",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "indexhtml_loadgame",
-      "community": 4,
-      "norm_label": "loadgame (calls loadall again after restoring save)"
-    },
-    {
-      "label": "plugins/manifest.json",
-      "file_type": "document",
-      "source_file": "plugins/manifest.json",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "plugins_manifest_json",
-      "community": 5,
-      "norm_label": "plugins/manifest.json"
+      "norm_label": ".cleanup()"
     },
     {
       "label": "example-plugin.js init()",
       "file_type": "code",
-      "source_file": "plugins/example-plugin.js",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/plugins/example-plugin.js",
       "source_location": null,
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
       "id": "plugins_example_plugin_init",
-      "community": 2,
+      "community": 9,
       "norm_label": "example-plugin.js init()"
+    },
+    {
+      "label": "plugins/manifest.json",
+      "file_type": "document",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/plugins/manifest.json",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "plugins_manifest_json",
+      "community": 10,
+      "norm_label": "plugins/manifest.json"
     },
     {
       "label": "phase-2-scale-up.js init()",
       "file_type": "code",
-      "source_file": "plugins/phase-2-scale-up.js",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/plugins/phase-2-scale-up.js",
       "source_location": null,
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
       "id": "plugins_phase_2_scale_up_init",
-      "community": 2,
+      "community": 8,
       "norm_label": "phase-2-scale-up.js init()"
-    },
-    {
-      "label": "phase-3-grid-wars.js init()",
-      "file_type": "code",
-      "source_file": "plugins/phase-3-grid-wars.js",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "plugins_phase_3_grid_wars_init",
-      "community": 2,
-      "norm_label": "phase-3-grid-wars.js init()"
-    },
-    {
-      "label": "PLUGIN_ARCHITECTURE.md design spec",
-      "file_type": "document",
-      "source_file": "scrum-to-do/PLUGIN_ARCHITECTURE.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "scrum_to_do_plugin_architecture_designspec",
-      "community": 6,
-      "norm_label": "plugin_architecture.md design spec"
-    },
-    {
-      "label": "PHASE_2_SCALE_UP.md design spec",
-      "file_type": "document",
-      "source_file": "scrum-to-do/PHASE_2_SCALE_UP.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "scrum_to_do_phase_2_scale_up_designspec",
-      "community": 2,
-      "norm_label": "phase_2_scale_up.md design spec"
-    },
-    {
-      "label": "PHASE_3_GRID_WARS.md design spec",
-      "file_type": "document",
-      "source_file": "scrum-to-do/PHASE_3_GRID_WARS.md",
-      "source_location": null,
-      "source_url": null,
-      "captured_at": null,
-      "author": null,
-      "contributor": null,
-      "id": "scrum_to_do_phase_3_grid_wars_designspec",
-      "community": 2,
-      "norm_label": "phase_3_grid_wars.md design spec"
     },
     {
       "label": "BESS Tycoon (README overview)",
       "file_type": "document",
-      "source_file": "README.md",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/README.md",
       "source_location": null,
       "source_url": null,
       "captured_at": null,
       "author": null,
       "contributor": null,
       "id": "readme_bess_tycoon",
-      "community": 6,
+      "community": 11,
       "norm_label": "bess tycoon (readme overview)"
+    },
+    {
+      "label": "PHASE_2_SCALE_UP.md design spec",
+      "file_type": "document",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_2_SCALE_UP.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "scrum_to_do_phase_2_scale_up_designspec",
+      "community": 8,
+      "norm_label": "phase_2_scale_up.md design spec"
+    },
+    {
+      "label": "PHASE_3_GRID_WARS.md design spec",
+      "file_type": "document",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_3_GRID_WARS.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "scrum_to_do_phase_3_grid_wars_designspec",
+      "community": 12,
+      "norm_label": "phase_3_grid_wars.md design spec"
+    },
+    {
+      "label": "PLUGIN_ARCHITECTURE.md design spec",
+      "file_type": "document",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PLUGIN_ARCHITECTURE.md",
+      "source_location": null,
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "scrum_to_do_plugin_architecture_designspec",
+      "community": 13,
+      "norm_label": "plugin_architecture.md design spec"
+    },
+    {
+      "label": "saveGame",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "241",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_savegame",
+      "community": 0,
+      "norm_label": "savegame"
+    },
+    {
+      "label": "loadGame",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "262",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_loadgame",
+      "community": 0,
+      "norm_label": "loadgame"
+    },
+    {
+      "label": "GameLoop",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "362",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_gameloop",
+      "community": 0,
+      "norm_label": "gameloop"
+    },
+    {
+      "label": "submitDashboard",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "563",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_submitdashboard",
+      "community": 3,
+      "norm_label": "submitdashboard"
+    },
+    {
+      "label": "buyUpgrade",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "435",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_buyupgrade",
+      "community": 0,
+      "norm_label": "buyupgrade"
+    },
+    {
+      "label": "buyPluginUpgrade",
+      "file_type": "code",
+      "source_file": "js/app.js",
+      "source_location": "481",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_app_buypluginupgrade",
+      "community": 0,
+      "norm_label": "buypluginupgrade"
+    },
+    {
+      "label": "DashboardTestHarness",
+      "file_type": "code",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "js_dashboard_test_testharness",
+      "community": 3,
+      "norm_label": "dashboardtestharness"
+    },
+    {
+      "label": "GameUI",
+      "file_type": "code",
+      "source_file": "index.html",
+      "source_location": "1",
+      "source_url": null,
+      "captured_at": null,
+      "author": null,
+      "contributor": null,
+      "id": "index_gameui",
+      "community": 0,
+      "norm_label": "gameui"
     }
   ],
   "links": [
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L61",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_activity",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L27",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_alerttriangle",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L52",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_barchart3",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L7",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_battery",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L205",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_besstycoon",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L42",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_coffee",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L103",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_core_resource_ids",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L117",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_default_game_state",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_dollarsign",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L82",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_download",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L98",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_gameengine",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L149",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_loadpluginfiles",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L181",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_migratesavedata",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L75",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_rotateccw",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L67",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_save",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L35",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_trendingup",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L90",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_upload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/app.js",
+      "source_location": "L14",
+      "weight": 1.0,
+      "source": "js_app",
+      "target": "js_app_zap",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "js/app.js",
+      "source_location": "135",
+      "weight": 0.95,
+      "source": "js_app_default_game_state",
+      "target": "js_dashboard_dashboard_panels"
+    },
+    {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "js/app.js",
+      "source_location": "117",
+      "weight": 0.95,
+      "source": "js_app_default_game_state",
+      "target": "plugins_phase_3_grid_wars_phase3gridwarsplugin"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "229",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_loadpluginfiles"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "177",
+      "weight": 1.0,
+      "source": "js_app_loadpluginfiles",
+      "target": "js_engine_pluginregistry"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "267",
+      "weight": 1.0,
+      "source": "js_app_loadgame",
+      "target": "js_app_migratesavedata"
+    },
+    {
+      "relation": "references",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "index.html",
+      "source_location": "23",
+      "weight": 1.0,
+      "source": "index_gameui",
+      "target": "js_app_besstycoon"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "481",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_buypluginupgrade"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "435",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_buyupgrade"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "362",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_gameloop"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "228",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_loadgame"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "235",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_savegame"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "563",
+      "weight": 1.0,
+      "source": "js_app_besstycoon",
+      "target": "js_app_submitdashboard"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L1",
+      "weight": 1.0,
+      "source": "js_dashboard",
+      "target": "js_dashboard_dashboard_panels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L10",
+      "weight": 1.0,
+      "source": "js_dashboard",
+      "target": "js_dashboard_dashboard_scenarios",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L16",
+      "weight": 1.0,
+      "source": "js_dashboard",
+      "target": "js_dashboard_panel_color_classes",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.mjs",
+      "source_location": "L24",
+      "weight": 1.0,
+      "source": "js_dashboard",
+      "target": "js_dashboard_scoredashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports_from",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_dashboard_panels",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "semantically_similar_to",
+      "confidence": "INFERRED",
+      "confidence_score": 0.65,
+      "source_file": "js/dashboard.mjs",
+      "source_location": "10",
+      "weight": 0.65,
+      "source": "js_dashboard_dashboard_scenarios",
+      "target": "plugins_phase_3_grid_wars_phase3gridwarsplugin"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_dashboard_scenarios",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "565",
+      "weight": 1.0,
+      "source": "js_app_submitdashboard",
+      "target": "js_dashboard_scoredashboard"
+    },
+    {
+      "relation": "imports",
+      "context": "import",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L2",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_scoredashboard",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "8",
+      "weight": 1.0,
+      "source": "js_dashboard_test_testharness",
+      "target": "js_dashboard_scoredashboard"
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L6",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_test_bad",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L5",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_test_good",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/dashboard.test.mjs",
+      "source_location": "L4",
+      "weight": 1.0,
+      "source": "js_dashboard_test",
+      "target": "js_dashboard_test_investor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L135",
+      "weight": 1.0,
+      "source": "js_engine",
+      "target": "js_engine_gameengine",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "contains",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L3",
+      "weight": 1.0,
+      "source": "js_engine",
+      "target": "js_engine_pluginregistry",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "405",
+      "weight": 1.0,
+      "source": "js_app_gameloop",
+      "target": "js_engine_pluginregistry"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "278",
+      "weight": 1.0,
+      "source": "js_app_loadgame",
+      "target": "js_engine_pluginregistry"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "250",
+      "weight": 1.0,
+      "source": "js_app_savegame",
+      "target": "js_engine_pluginregistry"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/engine.js",
+      "source_location": "101",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_gameengine"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L57",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_checkandloadnewplugins",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L107",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_enable",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L11",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_initplugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L36",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_loadall",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L20",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_register",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L74",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_resolvedependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L122",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_triggerhook",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L94",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry",
+      "target": "js_engine_pluginregistry_unload",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugins/phase-3-grid-wars.js",
+      "source_location": "1100",
+      "weight": 1.0,
+      "source": "plugins_phase_3_grid_wars_phase3gridwarsplugin",
+      "target": "js_engine_pluginregistry"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L63",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry_checkandloadnewplugins",
+      "target": "js_engine_pluginregistry_initplugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L112",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry_enable",
+      "target": "js_engine_pluginregistry_initplugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L47",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry_loadall",
+      "target": "js_engine_pluginregistry_initplugin",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L37",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry_loadall",
+      "target": "js_engine_pluginregistry_resolvedependencies",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L101",
+      "weight": 1.0,
+      "source": "js_engine_pluginregistry_unload",
+      "target": "js_engine_gameengine_off",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "475",
+      "weight": 1.0,
+      "source": "js_app_buyupgrade",
+      "target": "js_engine_gameengine"
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js",
+      "source_location": "380",
+      "weight": 1.0,
+      "source": "js_app_gameloop",
+      "target": "js_engine_gameengine"
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L158",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_addevent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L144",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_addresource",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L162",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_addtab",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L148",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_addupgrade",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L136",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_constructor",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L182",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_emit",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L176",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_off",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L166",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_on",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "method",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L189",
+      "weight": 1.0,
+      "source": "js_engine_gameengine",
+      "target": "js_engine_gameengine_triggerevent",
+      "confidence_score": 1.0
+    },
+    {
+      "relation": "calls",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "plugins/phase-3-grid-wars.js",
+      "source_location": "57",
+      "weight": 1.0,
+      "source": "plugins_phase_3_grid_wars_phase3gridwarsplugin",
+      "target": "js_engine_gameengine"
+    },
+    {
+      "relation": "calls",
+      "context": "call",
+      "confidence": "EXTRACTED",
+      "source_file": "js/engine.js",
+      "source_location": "L192",
+      "weight": 1.0,
+      "source": "js_engine_gameengine_triggerevent",
+      "target": "js_engine_gameengine_emit",
+      "confidence_score": 1.0
+    },
     {
       "relation": "contains",
       "confidence": "EXTRACTED",
@@ -781,6 +1975,16 @@
       "confidence_score": 1.0
     },
     {
+      "relation": "shares_data_with",
+      "confidence": "INFERRED",
+      "confidence_score": 0.95,
+      "source_file": "js/app.js",
+      "source_location": "405",
+      "weight": 0.95,
+      "source": "js_app_gameloop",
+      "target": "plugins_phase_3_grid_wars_phase3gridwarsplugin"
+    },
+    {
       "relation": "method",
       "confidence": "EXTRACTED",
       "source_file": "plugins/phase-3-grid-wars.js",
@@ -946,171 +2150,66 @@
       "confidence_score": 1.0
     },
     {
-      "relation": "references",
-      "confidence": "INFERRED",
-      "confidence_score": 0.65,
-      "source_file": "README.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "readme_bess_tycoon",
-      "target": "indexhtml_pluginregistry"
-    },
-    {
       "relation": "rationale_for",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
-      "source_file": "scrum-to-do/PLUGIN_ARCHITECTURE.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "scrum_to_do_plugin_architecture_designspec",
-      "target": "indexhtml_pluginregistry"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_loadgame",
-      "target": "indexhtml_pluginregistry_loadall"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_pluginregistry_loadall",
-      "target": "indexhtml_gameengine_hooks_map"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_pluginregistry_loadall",
-      "target": "indexhtml_pluginregistry_loadedplugins"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_pluginregistry_checkandloadnewplugins",
-      "target": "indexhtml_pluginregistry_loadedplugins"
-    },
-    {
-      "relation": "semantically_similar_to",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_gameengine_hooks_map",
-      "target": "indexhtml_pluginregistry_loadedplugins"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_loadpluginfiles",
-      "target": "indexhtml_pluginregistry_register"
-    },
-    {
-      "relation": "shares_data_with",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_gameengine_on",
-      "target": "indexhtml_gameengine_hooks_map"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugins/example-plugin.js",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "plugins_example_plugin_init",
-      "target": "indexhtml_gameengine_on"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugins/phase-2-scale-up.js",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "plugins_phase_2_scale_up_init",
-      "target": "indexhtml_gameengine_on"
-    },
-    {
-      "relation": "calls",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "plugins/phase-3-grid-wars.js",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "plugins_phase_3_grid_wars_init",
-      "target": "indexhtml_gameengine_on"
-    },
-    {
-      "relation": "references",
-      "confidence": "EXTRACTED",
-      "confidence_score": 1.0,
-      "source_file": "index.html",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "indexhtml_loadpluginfiles",
-      "target": "plugins_manifest_json"
-    },
-    {
-      "relation": "rationale_for",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "scrum-to-do/PHASE_2_SCALE_UP.md",
+      "source_file": "/home/sevenup/vscode/bess-tycoon/scrum-to-do/PHASE_2_SCALE_UP.md",
       "source_location": null,
       "weight": 1.0,
       "source": "scrum_to_do_phase_2_scale_up_designspec",
       "target": "plugins_phase_2_scale_up_init"
     },
     {
-      "relation": "rationale_for",
+      "relation": "semantically_similar_to",
       "confidence": "INFERRED",
       "confidence_score": 0.85,
-      "source_file": "scrum-to-do/PHASE_3_GRID_WARS.md",
-      "source_location": null,
-      "weight": 1.0,
-      "source": "scrum_to_do_phase_3_grid_wars_designspec",
-      "target": "plugins_phase_3_grid_wars_init"
+      "source_file": "js/app.js",
+      "source_location": "435",
+      "weight": 0.85,
+      "source": "js_app_buyupgrade",
+      "target": "js_app_buypluginupgrade"
     }
   ],
   "hyperedges": [
     {
-      "id": "plugin_init_tick_hooks",
-      "label": "All plugin init() functions registering tick hooks with no dedup guard",
+      "id": "plugin_lifecycle_system",
+      "label": "Plugin Lifecycle System",
       "nodes": [
-        "plugins_example_plugin_init",
-        "plugins_phase_2_scale_up_init",
-        "plugins_phase_3_grid_wars_init",
-        "indexhtml_gameengine_hooks_map"
+        "js_engine_pluginregistry",
+        "js_engine_gameengine",
+        "plugins_phase_3_grid_wars_phase3gridwarsplugin"
+      ],
+      "relation": "implement",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/engine.js"
+    },
+    {
+      "id": "save_load_persistence_pipeline",
+      "label": "Save/Load Persistence Pipeline",
+      "nodes": [
+        "js_app_savegame",
+        "js_app_loadgame",
+        "js_app_migratesavedata"
       ],
       "relation": "participate_in",
-      "confidence": "INFERRED",
-      "confidence_score": 0.85,
-      "source_file": "index.html"
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/app.js"
+    },
+    {
+      "id": "monitoring_dashboard_subsystem",
+      "label": "Monitoring Dashboard Subsystem",
+      "nodes": [
+        "js_dashboard_dashboard_panels",
+        "js_dashboard_dashboard_scenarios",
+        "js_dashboard_scoredashboard"
+      ],
+      "relation": "form",
+      "confidence": "EXTRACTED",
+      "confidence_score": 1.0,
+      "source_file": "js/dashboard.mjs"
     }
   ],
-  "built_at_commit": "94eea93b6016ab1f754e1127b66066bbbcc84ddd"
+  "built_at_commit": "817992915daa24796f12dc30b7f3d9821b5490d0"
 }

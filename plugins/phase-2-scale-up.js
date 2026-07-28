@@ -793,24 +793,20 @@ class Phase2ScaleUpPlugin {
 
   static onAfterLoad(saveData, gameState) {
     var d = saveData.pluginData && saveData.pluginData.phase2;
-    if (d) {
-      this._mckinseyTimer = d.mckinseyTimer || 0;
-      this._mckinseyStage = d.mckinseyStage || 0;
-      this._auditsSurvived = d.auditsSurvived || 0;
-      this._lobbyingSpent = d.lobbyingSpent || 0;
-      this._totalClaims = d.totalClaims || 0;
-      this._competitorEventFired = d.competitorEventFired || false;
-      this._unlockEventFired = d.unlockEventFired || false;
-      this._complianceOfficers = d.complianceOfficers || 0;
-      this._lobbyists = d.lobbyists || 0;
-      this._insurancePremiumMultiplier = d.insurancePremiumMultiplier || 1;
-    }
+    this._mckinseyTimer = d?.mckinseyTimer ?? 0;
+    this._mckinseyStage = d?.mckinseyStage ?? 0;
+    this._auditsSurvived = d?.auditsSurvived ?? 0;
+    this._lobbyingSpent = d?.lobbyingSpent ?? 0;
+    this._totalClaims = d?.totalClaims ?? 0;
+    this._competitorEventFired = d?.competitorEventFired ?? false;
+    this._unlockEventFired = d?.unlockEventFired ?? false;
+    this._complianceOfficers = d?.complianceOfficers ?? 0;
+    this._lobbyists = d?.lobbyists ?? 0;
+    this._insurancePremiumMultiplier = d?.insurancePremiumMultiplier ?? 1;
   }
 
   static cleanup() {
     console.log('[Phase2] Cleaning up...');
-    this._mckinseyTimer = 0;
-    this._mckinseyStage = 0;
   }
 }
 

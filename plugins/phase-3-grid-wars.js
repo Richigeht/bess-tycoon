@@ -1052,39 +1052,38 @@ class Phase3GridWarsPlugin {
   // === LOAD ===
   static onAfterLoad(saveData, gameState) {
     var d = (saveData.pluginData && saveData.pluginData.phase3) ? saveData.pluginData.phase3 : null;
-    if (!d) return;
 
-    this._tickCounter = d.tickCounter || 0;
-    this._priceHistory = d.priceHistory || [];
-    this._currentPrice = d.currentPrice || 50;
-    this._tradeCount = d.tradeCount || 0;
-    this._profitableTradeCount = d.profitableTradeCount || 0;
-    this._totalTradeProfit = d.totalTradeProfit || 0;
-    this._consecutiveProfitDays = d.consecutiveProfitDays || 0;
-    this._dayProfitAccumulator = d.dayProfitAccumulator || 0;
-    this._dayTickCounter = d.dayTickCounter || 0;
-    this._flashCrashActive = d.flashCrashActive || false;
-    this._flashCrashTicks = d.flashCrashTicks || 0;
-    this._polarVortexStage = d.polarVortexStage || 0;
-    this._polarVortexTicks = d.polarVortexTicks || 0;
-    this._solarFloodActive = d.solarFloodActive || false;
-    this._solarFloodTicks = d.solarFloodTicks || 0;
-    this._firmwareBugActive = d.firmwareBugActive || false;
-    this._firmwareBugTicks = d.firmwareBugTicks || 0;
-    this._cyberBreachActive = d.cyberBreachActive || false;
-    this._cyberBreachTicks = d.cyberBreachTicks || 0;
-    this._frequencyMissStreak = d.frequencyMissStreak || 0;
-    this._frequencyBanned = d.frequencyBanned || false;
-    this._frequencyBanTicks = d.frequencyBanTicks || 0;
-    this._totalFrequencyEvents = d.totalFrequencyEvents || 0;
-    this._fastFrequencyResponses = d.fastFrequencyResponses || 0;
-    this._connectedGrids = d.connectedGrids || [];
-    this._gridRelationships = d.gridRelationships || { caiso: 0, pjm: 20, ercot: -10, miso: 0, nyiso: -5 };
-    this._batteryDegradation = d.batteryDegradation || 0;
-    this._cycleCount = d.cycleCount || 0;
-    this._riskTolerance = d.riskTolerance || 30;
-    this._blackStartPerformed = d.blackStartPerformed || false;
-    this._unlockFired = d.unlockFired || false;
+    this._tickCounter = d?.tickCounter ?? 0;
+    this._priceHistory = d?.priceHistory ?? [];
+    this._currentPrice = d?.currentPrice ?? 50;
+    this._tradeCount = d?.tradeCount ?? 0;
+    this._profitableTradeCount = d?.profitableTradeCount ?? 0;
+    this._totalTradeProfit = d?.totalTradeProfit ?? 0;
+    this._consecutiveProfitDays = d?.consecutiveProfitDays ?? 0;
+    this._dayProfitAccumulator = d?.dayProfitAccumulator ?? 0;
+    this._dayTickCounter = d?.dayTickCounter ?? 0;
+    this._flashCrashActive = d?.flashCrashActive ?? false;
+    this._flashCrashTicks = d?.flashCrashTicks ?? 0;
+    this._polarVortexStage = d?.polarVortexStage ?? 0;
+    this._polarVortexTicks = d?.polarVortexTicks ?? 0;
+    this._solarFloodActive = d?.solarFloodActive ?? false;
+    this._solarFloodTicks = d?.solarFloodTicks ?? 0;
+    this._firmwareBugActive = d?.firmwareBugActive ?? false;
+    this._firmwareBugTicks = d?.firmwareBugTicks ?? 0;
+    this._cyberBreachActive = d?.cyberBreachActive ?? false;
+    this._cyberBreachTicks = d?.cyberBreachTicks ?? 0;
+    this._frequencyMissStreak = d?.frequencyMissStreak ?? 0;
+    this._frequencyBanned = d?.frequencyBanned ?? false;
+    this._frequencyBanTicks = d?.frequencyBanTicks ?? 0;
+    this._totalFrequencyEvents = d?.totalFrequencyEvents ?? 0;
+    this._fastFrequencyResponses = d?.fastFrequencyResponses ?? 0;
+    this._connectedGrids = d?.connectedGrids ?? [];
+    this._gridRelationships = d?.gridRelationships ?? { caiso: 0, pjm: 20, ercot: -10, miso: 0, nyiso: -5 };
+    this._batteryDegradation = d?.batteryDegradation ?? 0;
+    this._cycleCount = d?.cycleCount ?? 0;
+    this._riskTolerance = d?.riskTolerance ?? 30;
+    this._blackStartPerformed = d?.blackStartPerformed ?? false;
+    this._unlockFired = d?.unlockFired ?? false;
   }
 
   static cleanup() {

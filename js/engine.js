@@ -12,6 +12,9 @@ export class PluginRegistry {
     this._initializingPluginId = PluginClass.manifest.id;
     try {
       PluginClass.init(gameEngine);
+    } catch (error) {
+      gameEngine.removePlugin(PluginClass.manifest.id);
+      throw error;
     } finally {
       this._initializingPluginId = null;
     }
@@ -21,16 +24,21 @@ export class PluginRegistry {
     const manifest = PluginClass.manifest;
     if (!manifest || !manifest.id) {
       console.error('Plugin missing required manifest.id');
-      return;
+      return false;
+    }
+    if (this.plugins.has(manifest.id)) {
+      console.warn(`Plugin already registered: ${manifest.id}`);
+      return false;
     }
     for (const [id, existing] of this.plugins) {
       if (manifest.conflicts?.includes(id) || existing.manifest.conflicts?.includes(manifest.id)) {
         console.warn(`Plugin conflict: ${manifest.id} conflicts with ${id}`);
-        return;
+        return false;
       }
     }
     this.plugins.set(manifest.id, PluginClass);
     console.log(`Registered plugin: ${manifest.name} v${manifest.version}`);
+    return true;
   }
 
   static loadAll(gameEngine, gameState) {
@@ -43,7 +51,7 @@ export class PluginRegistry {
       const PluginClass = this.plugins.get(pluginId);
       if (this.loadedPlugins.includes(PluginClass)) continue;
       if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
-      if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) {
+      if (!this._canLoad(PluginClass, gameState)) {
         console.log(`Plugin ${pluginId} not yet unlocked (need: ${PluginClass.manifest.description})`);
         continue;
       }
@@ -62,7 +70,7 @@ export class PluginRegistry {
     for (const [pluginId, PluginClass] of this.plugins) {
       if (this.loadedPlugins.includes(PluginClass)) continue;
       if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
-      if (PluginClass.manifest.unlockCondition && !PluginClass.manifest.unlockCondition(gameState)) continue;
+      if (!this._canLoad(PluginClass, gameState)) continue;
       try {
         this._initPlugin(PluginClass, gameEngine);
         this.loadedPlugins.push(PluginClass);
@@ -77,17 +85,25 @@ export class PluginRegistry {
 
   static resolveDependencies() {
     const sorted = [];
+    const visiting = new Set();
     const visited = new Set();
+    const invalid = new Set();
     const visit = (pluginId) => {
-      if (visited.has(pluginId)) return;
-      visited.add(pluginId);
-      const plugin = this.plugins.get(pluginId);
-      if (plugin?.manifest.dependencies) {
-        for (const depId of plugin.manifest.dependencies) {
-          visit(depId);
-        }
+      if (visited.has(pluginId)) return !invalid.has(pluginId);
+      if (visiting.has(pluginId)) {
+        invalid.add(pluginId);
+        return false;
       }
-      sorted.push(pluginId);
+      const plugin = this.plugins.get(pluginId);
+      if (!plugin) return false;
+      visiting.add(pluginId);
+      for (const depId of plugin.manifest.dependencies || []) {
+        if (!visit(depId)) invalid.add(pluginId);
+      }
+      visiting.delete(pluginId);
+      visited.add(pluginId);
+      if (!invalid.has(pluginId)) sorted.push(pluginId);
+      return !invalid.has(pluginId);
     };
     for (const pluginId of this.plugins.keys()) {
       visit(pluginId);
@@ -97,21 +113,23 @@ export class PluginRegistry {
 
   static unload(pluginId, gameEngine) {
     const PluginClass = this.plugins.get(pluginId);
-    if (PluginClass && PluginClass.cleanup) {
-      PluginClass.cleanup();
+    try {
+      if (PluginClass?.cleanup) PluginClass.cleanup(gameEngine);
+    } catch (error) {
+      console.error(`Failed to clean up plugin ${pluginId}:`, error);
+    } finally {
+      if (gameEngine) gameEngine.removePlugin(pluginId);
+      this.loadedPlugins = this.loadedPlugins.filter(p => p.manifest.id !== pluginId);
     }
-    // Remove the plugin's registered gameEngine.on() hooks so its tick
-    // logic stops running once disabled (and won't accumulate on re-enable).
-    if (gameEngine) gameEngine.off(pluginId);
-    this.loadedPlugins = this.loadedPlugins.filter(p => p.manifest.id !== pluginId);
     console.log(`Unloaded plugin: ${pluginId}`);
   }
 
   // Manually (re-)enable a plugin the player previously disabled.
-  static enable(pluginId, gameEngine) {
+  static enable(pluginId, gameEngine, gameState) {
     const PluginClass = this.plugins.get(pluginId);
     if (!PluginClass) return false;
     if (this.loadedPlugins.includes(PluginClass)) return false; // guard double-init
+    if (!this._canLoad(PluginClass, gameState)) return false;
     try {
       this._initPlugin(PluginClass, gameEngine);
       this.loadedPlugins.push(PluginClass);
@@ -121,6 +139,12 @@ export class PluginRegistry {
       console.error(`Failed to enable plugin ${pluginId}:`, error);
       return false;
     }
+  }
+
+  static _canLoad(PluginClass, gameState) {
+    const dependencies = PluginClass.manifest.dependencies || [];
+    return (!PluginClass.manifest.unlockCondition || PluginClass.manifest.unlockCondition(gameState))
+      && dependencies.every(id => this.loadedPlugins.includes(this.plugins.get(id)));
   }
 
   static triggerHook(hookName, ...args) {
@@ -154,11 +178,15 @@ export class GameEngine {
     this.upgrades = new Map();
     this.events = new Map();
     this.tabs = new Map();
+    this.actions = new Map();
     this.hooks = new Map();
   }
 
   addResource(resourceDef) {
-    this.resources.set(resourceDef.id, resourceDef);
+    this.resources.set(resourceDef.id, {
+      ...resourceDef,
+      _pluginOwner: PluginRegistry._initializingPluginId || null,
+    });
   }
 
   addUpgrade(upgradeDef) {
@@ -168,15 +196,55 @@ export class GameEngine {
     }
     const arr = this.upgrades.get(category);
     if (arr.some(u => u.id === upgradeDef.id)) return; // idempotent on re-init
-    arr.push(upgradeDef);
+    arr.push({
+      ...upgradeDef,
+      _pluginOwner: PluginRegistry._initializingPluginId || null,
+    });
   }
 
   addEvent(eventDef) {
-    this.events.set(eventDef.id, eventDef);
+    this.events.set(eventDef.id, {
+      ...eventDef,
+      _pluginOwner: PluginRegistry._initializingPluginId || null,
+    });
   }
 
   addTab(tabDef) {
-    this.tabs.set(tabDef.id, tabDef);
+    this.tabs.set(tabDef.id, {
+      ...tabDef,
+      _pluginOwner: PluginRegistry._initializingPluginId || null,
+    });
+  }
+
+  addAction(id, handler) {
+    this.actions.set(id, {
+      handler,
+      _pluginOwner: PluginRegistry._initializingPluginId || null,
+    });
+  }
+
+  runAction(id, state, payload = {}) {
+    const action = this.actions.get(id);
+    if (!action) return state;
+    try {
+      return action.handler(state, payload) ?? state;
+    } catch (error) {
+      console.error(`Action ${id} failed:`, error);
+      return state;
+    }
+  }
+
+  removePlugin(pluginId) {
+    for (const [id, def] of this.resources) if (def._pluginOwner === pluginId) this.resources.delete(id);
+    for (const [id, def] of this.events) if (def._pluginOwner === pluginId) this.events.delete(id);
+    for (const [id, def] of this.tabs) if (def._pluginOwner === pluginId) this.tabs.delete(id);
+    for (const [id, action] of this.actions) if (action._pluginOwner === pluginId) this.actions.delete(id);
+    for (const [category, upgrades] of this.upgrades) {
+      const remaining = upgrades.filter(def => def._pluginOwner !== pluginId);
+      if (remaining.length) this.upgrades.set(category, remaining);
+      else this.upgrades.delete(category);
+    }
+    this.off(pluginId);
   }
 
   on(hookName, callback) {

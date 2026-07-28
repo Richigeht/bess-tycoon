@@ -197,9 +197,17 @@ const BESSTycoon = () => {
       PluginRegistry.unload(pluginId, gameEngine);
     } else {
       PluginRegistry.disabledPlugins.delete(pluginId);
-      PluginRegistry.enable(pluginId, gameEngine);
+      PluginRegistry.enable(pluginId, gameEngine, gameState);
     }
     setPluginVersion(v => v + 1); // force re-render to reflect new state
+  };
+
+  const handlePluginAction = event => {
+    const button = event.target.closest('[data-game-action]');
+    if (!button) return;
+    setGameState(prev => gameEngine.runAction(button.dataset.gameAction, prev, {
+      claimId: Number(button.dataset.claimId),
+    }));
   };
 
   // Load saved game on mount
@@ -1114,7 +1122,12 @@ const BESSTycoon = () => {
         {!['production', 'monitoring', 'plugins'].includes(activeTab) && (() => {
           const tab = gameEngine.tabs.get(activeTab);
           if (tab && tab.render) {
-            return <div dangerouslySetInnerHTML={{ __html: tab.render(gameState) }} />;
+            return (
+              <div
+                onClick={handlePluginAction}
+                dangerouslySetInnerHTML={{ __html: tab.render(gameState) }}
+              />
+            );
           }
           return null;
         })()}

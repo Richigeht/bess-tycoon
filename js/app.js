@@ -1,5 +1,5 @@
 import { GameEngine, PluginRegistry } from '/js/engine.js';
-import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard } from '/js/dashboard.mjs';
+import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard, submitDashboardScenario } from '/js/dashboard.mjs';
 import { createSaveData, normalizeSaveData, startAutosave } from '/js/save.mjs';
 
 const { useState, useEffect, useRef } = React;
@@ -537,27 +537,8 @@ const BESSTycoon = () => {
     }));
   };
 
-  const submitDashboard = (scenario) => {
-    setGameState(prev => {
-      const result = scoreDashboard(scenario, prev.dashboard);
-      const resources = { ...prev.resources };
-      if (result.passed) {
-        if (resources.regulatoryCompliance !== undefined) resources.regulatoryCompliance += 15;
-        if (resources.investorConfidence !== undefined) resources.investorConfidence += 5;
-      }
-      return {
-        ...prev,
-        money: result.passed ? prev.money + scenario.reward : prev.money,
-        techDebt: result.passed ? Math.max(0, prev.techDebt - 5) : prev.techDebt + 3,
-        resources,
-        events: [{
-          text: result.passed
-            ? `📊 ${scenario.name} passed (${result.score}/100). Dashboard accepted.`
-            : `📉 ${scenario.name} failed (${result.score}/100). Missing: ${result.missing.join(', ') || 'better thresholds'}.`,
-          time: Date.now(),
-        }, ...prev.events.slice(0, 9)],
-      };
-    });
+  const submitDashboard = scenario => {
+    setGameState(prev => submitDashboardScenario(prev, scenario).state);
   };
 
   const upgradesData = [
@@ -976,6 +957,7 @@ const BESSTycoon = () => {
                   <div className="grid md:grid-cols-3 gap-3">
                     {DASHBOARD_SCENARIOS.map(scenario => {
                       const result = scoreDashboard(scenario, gameState.dashboard);
+                      const claimed = (gameState.pluginData.dashboardClaims || []).includes(scenario.id);
                       return (
                         <div key={scenario.id} className="bg-slate-900 p-4 rounded border border-cyan-500/30">
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -989,9 +971,10 @@ const BESSTycoon = () => {
                           </div>
                           <button
                             onClick={() => submitDashboard(scenario)}
-                            className="w-full px-3 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-sm font-semibold transition-all"
+                            disabled={claimed}
+                            className="w-full px-3 py-2 rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-gray-400 text-sm font-semibold transition-all"
                           >
-                            Submit Audit
+                            {claimed ? 'Completed' : 'Submit Audit'}
                           </button>
                         </div>
                       );

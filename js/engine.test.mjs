@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { PluginRegistry } from './engine.js';
+import { GameEngine, PluginRegistry } from './engine.js';
 
 function isolateRegistry(t, plugins, loadedPlugins = []) {
   const previous = {
@@ -56,4 +56,26 @@ test('persistence hook failures do not stop later plugins', t => {
   PluginRegistry.triggerPersistenceHook('onBeforeSave');
 
   assert.deepEqual(calls, ['following']);
+});
+
+test('loadAll unloads plugins that became disabled', t => {
+  let cleanupCalls = 0;
+  class Plugin {
+    static manifest = { id: 'disable-me', name: 'Disable Me', version: '1' };
+    static init() {}
+    static cleanup() { cleanupCalls += 1; }
+  }
+  isolateRegistry(t, []);
+  const previousConsoleLog = console.log;
+  console.log = () => {};
+  t.after(() => { console.log = previousConsoleLog; });
+  const engine = new GameEngine();
+  PluginRegistry.register(Plugin);
+  PluginRegistry.loadAll(engine, {});
+
+  PluginRegistry.disabledPlugins.add('disable-me');
+  PluginRegistry.loadAll(engine, {});
+
+  assert.equal(PluginRegistry.loadedPlugins.includes(Plugin), false);
+  assert.equal(cleanupCalls, 1);
 });

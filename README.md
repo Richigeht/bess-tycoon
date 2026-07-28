@@ -102,6 +102,8 @@ Then add the filename to `plugins/manifest.json`:
 | `gameEngine.addUpgrade(def)` | Add a purchasable upgrade |
 | `gameEngine.addEvent(def)` | Register a random event |
 | `gameEngine.addTab(def)` | Create a new UI tab |
+| `gameEngine.addAction(id, handler)` | Register an interactive plugin action |
+| `gameEngine.runAction(id, state, payload)` | Run an action and return its next state |
 | `gameEngine.on(hook, callback)` | Listen to game hooks (`tick`, `calculateProduction`, `upgradePurchased`, `eventTriggered`) |
 | `gameEngine.emit(hook, ...args)` | Trigger a hook |
 | `gameEngine.triggerEvent(eventId)` | Trigger a registered event |
@@ -135,16 +137,20 @@ Plugins can read/write these fields on the `gameState` object passed to hooks:
 }
 ```
 
-### Planned Plugins
+### Implemented Plugins
 
 - **Phase 2: The Scale-Up Nightmare** - Regulatory compliance, investor confidence, certification gauntlet
 - **Phase 3: The Grid Integration Wars** - Energy trading, frequency regulation, algorithmic optimization
-- **Phase 4: Global Expansion** - International markets
+- **Phase 4: Warranty Claim Siege** - Field failures, customer trust, RMA decisions, and vendor escalation
+
+### Planned Plugins
+
+- **Global Expansion** - International markets
 - **Phase 5: Transcendence** - End-game content
 
 ## Development
 
-No build step required. Open `index.html` directly or serve with any static file server:
+No build step required. Serve the project with any static file server:
 
 ```bash
 npx serve .
@@ -152,7 +158,7 @@ npx serve .
 python3 -m http.server
 ```
 
-Plugin loading requires a server (fetch won't work with `file://` protocol).
+Then open the server URL it prints. Plugin loading uses `fetch`, so `file://` is not supported.
 
 ## Credits
 

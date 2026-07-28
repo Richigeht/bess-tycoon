@@ -112,6 +112,12 @@ export class PluginRegistry {
   }
 
   static unload(pluginId, gameEngine) {
+    const dependents = this.loadedPlugins.filter(
+      plugin => (plugin.manifest.dependencies || []).includes(pluginId),
+    );
+    for (const dependent of dependents) {
+      this.unload(dependent.manifest.id, gameEngine);
+    }
     const PluginClass = this.plugins.get(pluginId);
     try {
       if (PluginClass?.cleanup) PluginClass.cleanup(gameEngine);
@@ -183,6 +189,7 @@ export class GameEngine {
   }
 
   addResource(resourceDef) {
+    if (this.resources.has(resourceDef.id)) return;
     this.resources.set(resourceDef.id, {
       ...resourceDef,
       _pluginOwner: PluginRegistry._initializingPluginId || null,
@@ -203,6 +210,7 @@ export class GameEngine {
   }
 
   addEvent(eventDef) {
+    if (this.events.has(eventDef.id)) return;
     this.events.set(eventDef.id, {
       ...eventDef,
       _pluginOwner: PluginRegistry._initializingPluginId || null,
@@ -210,6 +218,7 @@ export class GameEngine {
   }
 
   addTab(tabDef) {
+    if (this.tabs.has(tabDef.id)) return;
     this.tabs.set(tabDef.id, {
       ...tabDef,
       _pluginOwner: PluginRegistry._initializingPluginId || null,
@@ -217,6 +226,7 @@ export class GameEngine {
   }
 
   addAction(id, handler) {
+    if (this.actions.has(id)) return;
     this.actions.set(id, {
       handler,
       _pluginOwner: PluginRegistry._initializingPluginId || null,
@@ -251,10 +261,9 @@ export class GameEngine {
     if (!this.hooks.has(hookName)) {
       this.hooks.set(hookName, []);
     }
-    // Tag the callback with the plugin currently being initialized so
-    // unload() can remove exactly the hooks that plugin registered.
-    callback._pluginOwner = PluginRegistry._initializingPluginId || null;
-    this.hooks.get(hookName).push(callback);
+    const ownedCallback = (...args) => callback(...args);
+    ownedCallback._pluginOwner = PluginRegistry._initializingPluginId || null;
+    this.hooks.get(hookName).push(ownedCallback);
   }
 
   off(pluginId) {

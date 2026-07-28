@@ -197,3 +197,100 @@ test('owned actions run only while the plugin is loaded', () => {
   PluginRegistry.unload('actions', engine);
   assert.deepEqual(engine.runAction('increment', { value: 2 }), { value: 2 });
 });
+
+test('unloading a dependency also unloads transitive dependents', () => {
+  const engine = new GameEngine();
+  const cleaned = [];
+  const make = (id, dependencies = []) => class {
+    static manifest = { id, name: id, version: '1', dependencies, conflicts: [] };
+    static init(e) { e.on('tick', () => {}); }
+    static cleanup() { cleaned.push(id); }
+  };
+  const Dependency = make('dependency');
+  const Dependent = make('dependent', ['dependency']);
+  const Transitive = make('transitive', ['dependent']);
+  PluginRegistry.register(Dependency);
+  PluginRegistry.register(Dependent);
+  PluginRegistry.register(Transitive);
+  PluginRegistry.loadAll(engine, {});
+
+  PluginRegistry.unload('dependency', engine);
+
+  assert.deepEqual(PluginRegistry.loadedPlugins, []);
+  assert.deepEqual(cleaned, ['transitive', 'dependent', 'dependency']);
+  assert.equal([...engine.hooks.values()].flat().length, 0);
+});
+
+test('failed initialization preserves existing map registrations with colliding ids', () => {
+  const engine = new GameEngine();
+  engine.addResource({ id: 'shared', name: 'Core resource' });
+  engine.addEvent({ id: 'shared', name: 'Core event' });
+  engine.addTab({ id: 'shared', name: 'Core tab' });
+  engine.addAction('shared', state => ({ ...state, source: 'core' }));
+  class Broken {
+    static manifest = { id: 'broken-collision', name: 'Broken collision', version: '1' };
+    static init(e) {
+      e.addResource({ id: 'shared', name: 'Plugin resource' });
+      e.addEvent({ id: 'shared', name: 'Plugin event' });
+      e.addTab({ id: 'shared', name: 'Plugin tab' });
+      e.addAction('shared', state => ({ ...state, source: 'plugin' }));
+      throw new Error('boom');
+    }
+  }
+  PluginRegistry.register(Broken);
+
+  PluginRegistry.loadAll(engine, {});
+
+  assert.equal(engine.resources.get('shared').name, 'Core resource');
+  assert.equal(engine.events.get('shared').name, 'Core event');
+  assert.equal(engine.tabs.get('shared').name, 'Core tab');
+  assert.equal(engine.runAction('shared', {}).source, 'core');
+});
+
+test('unload preserves existing map registrations with colliding ids', () => {
+  const engine = new GameEngine();
+  engine.addResource({ id: 'shared', name: 'Core resource' });
+  engine.addEvent({ id: 'shared', name: 'Core event' });
+  engine.addTab({ id: 'shared', name: 'Core tab' });
+  engine.addAction('shared', state => ({ ...state, source: 'core' }));
+  class Plugin {
+    static manifest = { id: 'collision', name: 'Collision', version: '1' };
+    static init(e) {
+      e.addResource({ id: 'shared', name: 'Plugin resource' });
+      e.addEvent({ id: 'shared', name: 'Plugin event' });
+      e.addTab({ id: 'shared', name: 'Plugin tab' });
+      e.addAction('shared', state => ({ ...state, source: 'plugin' }));
+    }
+  }
+  PluginRegistry.register(Plugin);
+  PluginRegistry.loadAll(engine, {});
+
+  PluginRegistry.unload('collision', engine);
+
+  assert.equal(engine.resources.get('shared').name, 'Core resource');
+  assert.equal(engine.events.get('shared').name, 'Core event');
+  assert.equal(engine.tabs.get('shared').name, 'Core tab');
+  assert.equal(engine.runAction('shared', {}).source, 'core');
+});
+
+test('shared hook callbacks retain independent plugin ownership', () => {
+  const engine = new GameEngine();
+  let calls = 0;
+  const shared = () => { calls += 1; };
+  const make = id => class {
+    static manifest = { id, name: id, version: '1' };
+    static init(e) { e.on('tick', shared); }
+  };
+  const First = make('first');
+  const Second = make('second');
+  PluginRegistry.register(First);
+  PluginRegistry.register(Second);
+  PluginRegistry.loadAll(engine, {});
+  engine.emit('tick');
+
+  PluginRegistry.unload('second', engine);
+  engine.emit('tick');
+
+  assert.equal(calls, 3);
+  assert.deepEqual(PluginRegistry.loadedPlugins, [First]);
+});

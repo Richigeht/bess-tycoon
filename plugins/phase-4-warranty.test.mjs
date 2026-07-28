@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { GameEngine, PluginRegistry } from '../js/engine.js';
+import { createSaveData, normalizeSaveData } from '../js/save.mjs';
 import { loadClassicPlugin } from './test-plugin-loader.mjs';
 
 const warrantyState = () => ({
@@ -123,6 +124,20 @@ test('triage protects the first three overdue claims', async () => {
   assert.equal(state.resources.customerTrust, 69);
 });
 
+test('triage protects queue positions rather than the first boundary claims', async () => {
+  const { Plugin, state } = await setup(() => 1);
+  state.pluginData.upgrade_warranty_triage = true;
+  state.pluginData.warranty.claims = [61, 61, 61, 59].map((age, index) => ({
+    id: index + 1,
+    cause: 'Field failure',
+    payout: 5000,
+    age,
+    vendorCovered: false,
+  }));
+  Plugin.onTick(state, 1);
+  assert.equal(state.resources.customerTrust, 69);
+});
+
 test('low and high trust modify production', async () => {
   const { engine, state } = await setup();
   state.multipliers.productionSpeed = 1;
@@ -133,4 +148,20 @@ test('low and high trust modify production', async () => {
   state.resources.customerTrust = 90;
   engine.emit('calculateProduction', state);
   assert.equal(state.multipliers.productionSpeed, 1.05);
+});
+
+test('warranty state survives a JSON save roundtrip', () => {
+  const state = warrantyState();
+  state.pluginData.warranty = {
+    nextClaimId: 2,
+    claims: [{ id: 1, cause: 'Inverter fault', payout: 10000, age: 0, vendorCovered: false }],
+    filed: 1,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 30,
+  };
+  const saved = createSaveData(state, { timestamp: 123 });
+  const restored = normalizeSaveData(JSON.parse(JSON.stringify(saved)), warrantyState());
+  assert.deepEqual(restored.pluginData.warranty, state.pluginData.warranty);
 });

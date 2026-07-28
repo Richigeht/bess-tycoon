@@ -172,9 +172,9 @@ class Phase4WarrantyPlugin {
     data.tick++;
     for (const claim of data.claims) claim.age++;
 
-    const overdue = data.claims.filter(claim => claim.age > 0 && claim.age % 60 === 0);
-    const unprotected = state.pluginData.upgrade_warranty_triage ? overdue.slice(3) : overdue;
-    if (unprotected.length) this._trust(state, -unprotected.length);
+    const unprotected = state.pluginData.upgrade_warranty_triage ? data.claims.slice(3) : data.claims;
+    const overdue = unprotected.filter(claim => claim.age > 0 && claim.age % 60 === 0);
+    if (overdue.length) this._trust(state, -overdue.length);
 
     if (data.tick % 30 || Math.random() >= this._risk(state)) return;
     const cause = this.causes[Math.floor(Math.random() * this.causes.length)];

@@ -30,6 +30,18 @@ const warrantyState = () => ({
   dashboard: [],
 });
 
+const malformedWarranty = () => ({
+  nextClaimId: NaN,
+  claims: {},
+  filed: Infinity,
+  honored: null,
+  denied: '1',
+  vendorWins: -Infinity,
+  tick: {},
+});
+
+const warrantySnapshot = data => ({ ...data, claims: Array.from(data.claims) });
+
 class Phase2Stub {
   static manifest = {
     id: 'phase-2-scale-up',
@@ -164,4 +176,55 @@ test('warranty state survives a JSON save roundtrip', () => {
   const saved = createSaveData(state, { timestamp: 123 });
   const restored = normalizeSaveData(JSON.parse(JSON.stringify(saved)), warrantyState());
   assert.deepEqual(restored.pluginData.warranty, state.pluginData.warranty);
+});
+
+test('tick repairs a non-record warranty payload with defaults', async () => {
+  const { Plugin, state } = await setup(() => 1);
+  state.pluginData.warranty = [];
+
+  assert.doesNotThrow(() => Plugin.onTick(state, 1));
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 1,
+  });
+});
+
+test('render repairs malformed warranty claims and counters', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty = malformedWarranty();
+
+  let html;
+  assert.doesNotThrow(() => { html = engine.tabs.get('warranty').render(state); });
+
+  assert.match(html, /Open: <strong>0<\/strong>/);
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 0,
+  });
+});
+
+test('actions repair malformed warranty claims and counters', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty = malformedWarranty();
+
+  assert.equal(engine.runAction('warranty-honor', state, { claimId: 1 }), state);
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 0,
+  });
 });

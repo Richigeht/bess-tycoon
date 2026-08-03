@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { GameEngine, PluginRegistry } from '../js/engine.js';
 import { loadClassicPlugin } from './test-plugin-loader.mjs';
 
 const phase3State = (resourceOverrides = {}) => ({
@@ -99,4 +100,86 @@ test('frequency cooldown persists and restores deterministically', async () => {
   Plugin._frequencyEventCooldown = 37;
   Plugin.onAfterLoad({ pluginData: {} }, {});
   assert.equal(Plugin._frequencyEventCooldown, 0);
+});
+
+test('unload preserves market progress for save and re-enable', async t => {
+  const previous = {
+    plugins: PluginRegistry.plugins,
+    loadedPlugins: PluginRegistry.loadedPlugins,
+    disabledPlugins: PluginRegistry.disabledPlugins,
+  };
+  PluginRegistry.plugins = new Map();
+  PluginRegistry.loadedPlugins = [];
+  PluginRegistry.disabledPlugins = new Set();
+  t.after(() => Object.assign(PluginRegistry, previous));
+
+  class Phase2Stub {
+    static manifest = { id: 'phase-2-scale-up', name: 'Phase 2 Stub', version: '1' };
+    static init() {}
+  }
+  const Plugin = await loadClassicPlugin('./phase-3-grid-wars.js', 'Phase3GridWarsPlugin');
+  const engine = new GameEngine();
+  const state = phase3State();
+  PluginRegistry.register(Phase2Stub);
+  PluginRegistry.register(Plugin);
+  PluginRegistry.loadAll(engine, state);
+  Plugin._tickCounter = 42;
+  Plugin._priceHistory = [12, 34];
+
+  PluginRegistry.disabledPlugins.add('phase-3-grid-wars');
+  PluginRegistry.loadAll(engine, state);
+  const saveData = {};
+  PluginRegistry.triggerPersistenceHook('onBeforeSave', saveData);
+
+  assert.equal(saveData.pluginData.phase3.tickCounter, 42);
+  assert.deepEqual(Array.from(saveData.pluginData.phase3.priceHistory), [12, 34]);
+  PluginRegistry.disabledPlugins.delete('phase-3-grid-wars');
+  assert.equal(PluginRegistry.enable('phase-3-grid-wars', engine, state), true);
+  assert.equal(Plugin._tickCounter, 42);
+  assert.deepEqual(Array.from(Plugin._priceHistory), [12, 34]);
+});
+
+test('malformed Phase 3 containers and counters load as defaults and save safely', async () => {
+  const Plugin = await loadClassicPlugin('./phase-3-grid-wars.js', 'Phase3GridWarsPlugin');
+  const numericDefaults = {
+    tickCounter: 0,
+    currentPrice: 50,
+    tradeCount: 0,
+    profitableTradeCount: 0,
+    totalTradeProfit: 0,
+    consecutiveProfitDays: 0,
+    dayProfitAccumulator: 0,
+    dayTickCounter: 0,
+    flashCrashTicks: 0,
+    polarVortexStage: 0,
+    polarVortexTicks: 0,
+    solarFloodTicks: 0,
+    firmwareBugTicks: 0,
+    cyberBreachTicks: 0,
+    frequencyEventCooldown: 0,
+    frequencyMissStreak: 0,
+    frequencyBanTicks: 0,
+    totalFrequencyEvents: 0,
+    fastFrequencyResponses: 0,
+    batteryDegradation: 0,
+    cycleCount: 0,
+  };
+  const malformed = {
+    ...Object.fromEntries(Object.keys(numericDefaults).map(key => [key, Infinity])),
+    priceHistory: {},
+    connectedGrids: {},
+    gridRelationships: [],
+    riskTolerance: 0,
+  };
+
+  Plugin.onAfterLoad({ pluginData: { phase3: malformed } }, {});
+  const saveData = {};
+  assert.doesNotThrow(() => Plugin.onBeforeSave(saveData));
+
+  const saved = saveData.pluginData.phase3;
+  for (const [key, fallback] of Object.entries(numericDefaults)) assert.equal(saved[key], fallback, key);
+  assert.equal(saved.riskTolerance, 0);
+  assert.deepEqual(Array.from(saved.priceHistory), []);
+  assert.deepEqual(Array.from(saved.connectedGrids), []);
+  assert.deepEqual({ ...saved.gridRelationships }, { caiso: 0, pjm: 20, ercot: -10, miso: 0, nyiso: -5 });
 });

@@ -122,16 +122,17 @@ class Phase4WarrantyPlugin {
   }
 
   static _data(state) {
-    state.pluginData.warranty ??= {
-      nextClaimId: 1,
-      claims: [],
-      filed: 0,
-      honored: 0,
-      denied: 0,
-      vendorWins: 0,
-      tick: 0,
-    };
-    return state.pluginData.warranty;
+    const source = state.pluginData.warranty;
+    const data = source !== null && typeof source === 'object' && !Array.isArray(source) ? source : {};
+    data.nextClaimId = Number.isFinite(data.nextClaimId) ? data.nextClaimId : 1;
+    data.claims = Array.isArray(data.claims) ? data.claims : [];
+    data.filed = Number.isFinite(data.filed) ? data.filed : 0;
+    data.honored = Number.isFinite(data.honored) ? data.honored : 0;
+    data.denied = Number.isFinite(data.denied) ? data.denied : 0;
+    data.vendorWins = Number.isFinite(data.vendorWins) ? data.vendorWins : 0;
+    data.tick = Number.isFinite(data.tick) ? data.tick : 0;
+    state.pluginData.warranty = data;
+    return data;
   }
 
   static _event(state, text) {
@@ -151,8 +152,8 @@ class Phase4WarrantyPlugin {
   }
 
   static _resolve(state, claimId, apply) {
-    const source = state.pluginData.warranty;
-    const claimIndex = source?.claims.findIndex(claim => claim.id === claimId) ?? -1;
+    const source = this._data(state);
+    const claimIndex = source.claims.findIndex(claim => claim.id === claimId);
     if (claimIndex < 0) return state;
 
     const data = { ...source, claims: [...source.claims] };

@@ -1054,46 +1054,47 @@ class Phase3GridWarsPlugin {
 
   // === LOAD ===
   static onAfterLoad(saveData, gameState) {
-    var d = (saveData.pluginData && saveData.pluginData.phase3) ? saveData.pluginData.phase3 : null;
+    var isRecord = function(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); };
+    var number = function(value, fallback) { return Number.isFinite(value) ? value : fallback; };
+    var raw = saveData.pluginData && saveData.pluginData.phase3;
+    var d = isRecord(raw) ? raw : null;
 
-    this._tickCounter = d?.tickCounter ?? 0;
-    this._priceHistory = d?.priceHistory ?? [];
-    this._currentPrice = d?.currentPrice ?? 50;
-    this._tradeCount = d?.tradeCount ?? 0;
-    this._profitableTradeCount = d?.profitableTradeCount ?? 0;
-    this._totalTradeProfit = d?.totalTradeProfit ?? 0;
-    this._consecutiveProfitDays = d?.consecutiveProfitDays ?? 0;
-    this._dayProfitAccumulator = d?.dayProfitAccumulator ?? 0;
-    this._dayTickCounter = d?.dayTickCounter ?? 0;
+    this._tickCounter = number(d?.tickCounter, 0);
+    this._priceHistory = Array.isArray(d?.priceHistory) ? d.priceHistory : [];
+    this._currentPrice = number(d?.currentPrice, 50);
+    this._tradeCount = number(d?.tradeCount, 0);
+    this._profitableTradeCount = number(d?.profitableTradeCount, 0);
+    this._totalTradeProfit = number(d?.totalTradeProfit, 0);
+    this._consecutiveProfitDays = number(d?.consecutiveProfitDays, 0);
+    this._dayProfitAccumulator = number(d?.dayProfitAccumulator, 0);
+    this._dayTickCounter = number(d?.dayTickCounter, 0);
     this._flashCrashActive = d?.flashCrashActive ?? false;
-    this._flashCrashTicks = d?.flashCrashTicks ?? 0;
-    this._polarVortexStage = d?.polarVortexStage ?? 0;
-    this._polarVortexTicks = d?.polarVortexTicks ?? 0;
+    this._flashCrashTicks = number(d?.flashCrashTicks, 0);
+    this._polarVortexStage = number(d?.polarVortexStage, 0);
+    this._polarVortexTicks = number(d?.polarVortexTicks, 0);
     this._solarFloodActive = d?.solarFloodActive ?? false;
-    this._solarFloodTicks = d?.solarFloodTicks ?? 0;
+    this._solarFloodTicks = number(d?.solarFloodTicks, 0);
     this._firmwareBugActive = d?.firmwareBugActive ?? false;
-    this._firmwareBugTicks = d?.firmwareBugTicks ?? 0;
+    this._firmwareBugTicks = number(d?.firmwareBugTicks, 0);
     this._cyberBreachActive = d?.cyberBreachActive ?? false;
-    this._cyberBreachTicks = d?.cyberBreachTicks ?? 0;
-    this._frequencyEventCooldown = d?.frequencyEventCooldown ?? 0;
-    this._frequencyMissStreak = d?.frequencyMissStreak ?? 0;
+    this._cyberBreachTicks = number(d?.cyberBreachTicks, 0);
+    this._frequencyEventCooldown = number(d?.frequencyEventCooldown, 0);
+    this._frequencyMissStreak = number(d?.frequencyMissStreak, 0);
     this._frequencyBanned = d?.frequencyBanned ?? false;
-    this._frequencyBanTicks = d?.frequencyBanTicks ?? 0;
-    this._totalFrequencyEvents = d?.totalFrequencyEvents ?? 0;
-    this._fastFrequencyResponses = d?.fastFrequencyResponses ?? 0;
-    this._connectedGrids = d?.connectedGrids ?? [];
-    this._gridRelationships = d?.gridRelationships ?? { caiso: 0, pjm: 20, ercot: -10, miso: 0, nyiso: -5 };
-    this._batteryDegradation = d?.batteryDegradation ?? 0;
-    this._cycleCount = d?.cycleCount ?? 0;
-    this._riskTolerance = d?.riskTolerance ?? 30;
+    this._frequencyBanTicks = number(d?.frequencyBanTicks, 0);
+    this._totalFrequencyEvents = number(d?.totalFrequencyEvents, 0);
+    this._fastFrequencyResponses = number(d?.fastFrequencyResponses, 0);
+    this._connectedGrids = Array.isArray(d?.connectedGrids) ? d.connectedGrids : [];
+    this._gridRelationships = isRecord(d?.gridRelationships) ? d.gridRelationships : { caiso: 0, pjm: 20, ercot: -10, miso: 0, nyiso: -5 };
+    this._batteryDegradation = number(d?.batteryDegradation, 0);
+    this._cycleCount = number(d?.cycleCount, 0);
+    this._riskTolerance = number(d?.riskTolerance, 30);
     this._blackStartPerformed = d?.blackStartPerformed ?? false;
     this._unlockFired = d?.unlockFired ?? false;
   }
 
   static cleanup() {
     console.log('[Phase3] Cleaning up...');
-    this._tickCounter = 0;
-    this._priceHistory = [];
     // Keep _connectedGrids: grid upgrades are oneTime and gate on persisted
     // pluginData flags, so init() can't rebuild this list on re-enable.
   }

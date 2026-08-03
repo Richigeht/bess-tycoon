@@ -386,3 +386,27 @@ test('production calculations reset modifiers before every emission', () => {
   engine.emit('calculateProduction', state);
   assert.equal(state.multipliers.productionSpeed, 0.375);
 });
+
+test('canLoad requires both unlock eligibility and loaded dependencies', () => {
+  class Dependency {
+    static manifest = { id: 'dependency', name: 'Dependency', version: '1' };
+    static init() {}
+  }
+  class Dependent {
+    static manifest = {
+      id: 'dependent',
+      name: 'Dependent',
+      version: '1',
+      dependencies: ['dependency'],
+      unlockCondition: state => state.unlocked,
+    };
+    static init() {}
+  }
+  PluginRegistry.register(Dependency);
+  PluginRegistry.register(Dependent);
+
+  assert.equal(PluginRegistry.canLoad(Dependent, { unlocked: true }), false);
+  PluginRegistry.loadedPlugins.push(Dependency);
+  assert.equal(PluginRegistry.canLoad(Dependent, { unlocked: true }), true);
+  assert.equal(PluginRegistry.canLoad(Dependent, { unlocked: false }), false);
+});

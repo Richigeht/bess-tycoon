@@ -1053,7 +1053,7 @@ const BESSTycoon = () => {
                   {Array.from(PluginRegistry.plugins.values()).map(plugin => {
                     const manifest = plugin.manifest;
                     const isLoaded = PluginRegistry.loadedPlugins.includes(plugin);
-                    const canUnlock = manifest.unlockCondition ? manifest.unlockCondition(gameState) : true;
+                    const canEnable = PluginRegistry.canLoad(plugin, gameState);
                     return (
                       <div key={manifest.id} className={`p-4 rounded-lg border ${isLoaded ? 'bg-slate-900 border-green-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
                         <div className="flex justify-between items-start">
@@ -1063,10 +1063,10 @@ const BESSTycoon = () => {
                             {manifest.author && <div className="text-xs text-gray-500 mt-1">By: {manifest.author}</div>}
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canUnlock ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
-                              {isLoaded ? 'Loaded' : canUnlock ? 'Available' : 'Locked'}
+                            <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canEnable ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
+                              {isLoaded ? 'Loaded' : canEnable ? 'Available' : 'Locked'}
                             </div>
-                            {(isLoaded || canUnlock) && (
+                            {(isLoaded || canEnable) && (
                               <button
                                 onClick={() => togglePlugin(manifest.id)}
                                 className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${isLoaded ? 'bg-red-900/60 text-red-300 hover:bg-red-800' : 'bg-purple-900/60 text-purple-300 hover:bg-purple-800'}`}

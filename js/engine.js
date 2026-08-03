@@ -45,7 +45,7 @@ export class PluginRegistry {
     for (const PluginClass of [...this.loadedPlugins]) {
       if (!this.loadedPlugins.includes(PluginClass)) continue;
       const pluginId = PluginClass.manifest.id;
-      if (this.disabledPlugins.has(pluginId) || !this._canLoad(PluginClass, gameState)) {
+      if (this.disabledPlugins.has(pluginId) || !this.canLoad(PluginClass, gameState)) {
         this.unload(pluginId, gameEngine);
       }
     }
@@ -54,7 +54,7 @@ export class PluginRegistry {
       const PluginClass = this.plugins.get(pluginId);
       if (this.loadedPlugins.includes(PluginClass)) continue;
       if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
-      if (!this._canLoad(PluginClass, gameState)) {
+      if (!this.canLoad(PluginClass, gameState)) {
         console.log(`Plugin ${pluginId} not yet unlocked (need: ${PluginClass.manifest.description})`);
         continue;
       }
@@ -73,7 +73,7 @@ export class PluginRegistry {
     for (const [pluginId, PluginClass] of this.plugins) {
       if (this.loadedPlugins.includes(PluginClass)) continue;
       if (this.disabledPlugins.has(pluginId)) continue; // player turned it off
-      if (!this._canLoad(PluginClass, gameState)) continue;
+      if (!this.canLoad(PluginClass, gameState)) continue;
       try {
         this._initPlugin(PluginClass, gameEngine);
         this.loadedPlugins.push(PluginClass);
@@ -138,7 +138,7 @@ export class PluginRegistry {
     const PluginClass = this.plugins.get(pluginId);
     if (!PluginClass) return false;
     if (this.loadedPlugins.includes(PluginClass)) return false; // guard double-init
-    if (!this._canLoad(PluginClass, gameState)) return false;
+    if (!this.canLoad(PluginClass, gameState)) return false;
     try {
       this._initPlugin(PluginClass, gameEngine);
       this.loadedPlugins.push(PluginClass);
@@ -150,7 +150,7 @@ export class PluginRegistry {
     }
   }
 
-  static _canLoad(PluginClass, gameState) {
+  static canLoad(PluginClass, gameState) {
     const dependencies = PluginClass.manifest.dependencies || [];
     return (!PluginClass.manifest.unlockCondition || PluginClass.manifest.unlockCondition(gameState))
       && dependencies.every(id => this.loadedPlugins.includes(this.plugins.get(id)));

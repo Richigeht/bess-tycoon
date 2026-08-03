@@ -276,6 +276,9 @@ export class GameEngine {
   }
 
   emit(hookName, ...args) {
+    if (hookName === 'calculateProduction') {
+      args[0].multipliers.productionSpeed = 1;
+    }
     const callbacks = this.hooks.get(hookName) || [];
     for (const callback of callbacks) {
       callback(...args);

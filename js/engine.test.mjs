@@ -369,3 +369,20 @@ test('shared hook callbacks retain independent plugin ownership', () => {
   assert.equal(calls, 3);
   assert.deepEqual(PluginRegistry.loadedPlugins, [First]);
 });
+
+test('production calculations reset modifiers before every emission', () => {
+  const engine = new GameEngine();
+  engine.on('calculateProduction', state => {
+    state.multipliers.productionSpeed *= 0.5;
+  });
+  engine.on('calculateProduction', state => {
+    state.multipliers.productionSpeed *= 0.75;
+  });
+  const state = { multipliers: { productionSpeed: 8 } };
+
+  engine.emit('calculateProduction', state);
+  assert.equal(state.multipliers.productionSpeed, 0.375);
+
+  engine.emit('calculateProduction', state);
+  assert.equal(state.multipliers.productionSpeed, 0.375);
+});

@@ -1,0 +1,230 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { GameEngine, PluginRegistry } from '../js/engine.js';
+import { createSaveData, normalizeSaveData } from '../js/save.mjs';
+import { loadClassicPlugin } from './test-plugin-loader.mjs';
+
+const warrantyState = () => ({
+  money: 1000000,
+  batteries: 10000,
+  batteriesPerSecond: 10,
+  techDebt: 0,
+  coffee: 0,
+  clickPower: 1,
+  upgrades: {
+    intern: 0,
+    autoAssembler: 0,
+    skipTesting: false,
+    alibabaOrder: false,
+    ignoreCerts: false,
+    grafanaLicense: false,
+  },
+  events: [],
+  achievements: [],
+  grafanaUnlocked: false,
+  metrics: { temperature: 25, voltage: 48.2, soc: 87, alerts: 0 },
+  resources: { investorConfidence: 50 },
+  certifications: {},
+  multipliers: { productionSpeed: 1, usSalesPrice: 1 },
+  pluginData: {},
+  dashboard: [],
+});
+
+const malformedWarranty = () => ({
+  nextClaimId: NaN,
+  claims: {},
+  filed: Infinity,
+  honored: null,
+  denied: '1',
+  vendorWins: -Infinity,
+  tick: {},
+});
+
+const warrantySnapshot = data => ({ ...data, claims: Array.from(data.claims) });
+
+class Phase2Stub {
+  static manifest = {
+    id: 'phase-2-scale-up',
+    name: 'Phase 2 Stub',
+    version: '1',
+    dependencies: [],
+    conflicts: [],
+  };
+  static init() {}
+}
+
+const setup = async (random = () => 0.5) => {
+  PluginRegistry.plugins.clear();
+  PluginRegistry.loadedPlugins = [];
+  PluginRegistry.disabledPlugins.clear();
+  const Plugin = await loadClassicPlugin('./phase-4-warranty.js', 'Phase4WarrantyPlugin', random);
+  const engine = new GameEngine();
+  const state = warrantyState();
+  PluginRegistry.register(Phase2Stub);
+  PluginRegistry.register(Plugin);
+  PluginRegistry.loadAll(engine, state);
+  for (const [id, def] of engine.resources) {
+    if (state.resources[id] === undefined) state.resources[id] = def.startValue ?? 0;
+  }
+  Plugin._data(state);
+  return { Plugin, engine, state };
+};
+
+test('deterministic risk files a claim', async () => {
+  const { Plugin, state } = await setup(() => 0);
+  for (let i = 0; i < 30; i++) Plugin.onTick(state, 1);
+  assert.equal(state.pluginData.warranty.claims.length, 1);
+  assert.equal(state.pluginData.warranty.filed, 1);
+});
+
+test('honoring a claim pays cash and adds four trust', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty.claims = [{ id: 1, cause: 'Cell imbalance', payout: 10000, age: 0, vendorCovered: false }];
+  const next = engine.runAction('warranty-honor', state, { claimId: 1 });
+  assert.equal(next.money, state.money - 10000);
+  assert.equal(next.resources.customerTrust, 74);
+  assert.equal(next.pluginData.warranty.honored, 1);
+  assert.equal(next.pluginData.warranty.claims.length, 0);
+});
+
+test('denying a claim adds debt and damages trust and investors', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty.claims = [{ id: 1, cause: 'BMS reboot', payout: 10000, age: 0, vendorCovered: false }];
+  const next = engine.runAction('warranty-deny', state, { claimId: 1 });
+  assert.equal(next.money, state.money);
+  assert.equal(next.techDebt, 10);
+  assert.equal(next.resources.customerTrust, 62);
+  assert.equal(next.resources.investorConfidence, 45);
+  assert.equal(next.pluginData.warranty.denied, 1);
+});
+
+test('vendor escalation uses the precomputed result', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty.claims = [
+    { id: 1, cause: 'Inverter fault', payout: 10000, age: 0, vendorCovered: true },
+    { id: 2, cause: 'Thermal event', payout: 10000, age: 0, vendorCovered: false },
+  ];
+  const won = engine.runAction('warranty-vendor', state, { claimId: 1 });
+  assert.equal(won.money, state.money);
+  assert.equal(won.resources.customerTrust, 72);
+  assert.equal(won.pluginData.warranty.vendorWins, 1);
+  const lost = engine.runAction('warranty-vendor', won, { claimId: 2 });
+  assert.equal(lost.money, state.money - 15000);
+  assert.equal(lost.resources.customerTrust, 68);
+  assert.equal(lost.resources.investorConfidence, 47);
+});
+
+test('RMA discounts stop at fifty percent', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.upgrade_count_warranty_rma = 9;
+  state.pluginData.warranty.claims = [{ id: 1, cause: 'Cell imbalance', payout: 10000, age: 0, vendorCovered: false }];
+  const next = engine.runAction('warranty-honor', state, { claimId: 1 });
+  assert.equal(next.money, state.money - 5000);
+});
+
+test('triage protects the first three overdue claims', async () => {
+  const { Plugin, state } = await setup(() => 1);
+  state.pluginData.upgrade_warranty_triage = true;
+  state.pluginData.warranty.claims = Array.from({ length: 4 }, (_, index) => ({
+    id: index + 1,
+    cause: 'Field failure',
+    payout: 5000,
+    age: 59,
+    vendorCovered: false,
+  }));
+  Plugin.onTick(state, 1);
+  assert.equal(state.resources.customerTrust, 69);
+});
+
+test('triage protects queue positions rather than the first boundary claims', async () => {
+  const { Plugin, state } = await setup(() => 1);
+  state.pluginData.upgrade_warranty_triage = true;
+  state.pluginData.warranty.claims = [61, 61, 61, 59].map((age, index) => ({
+    id: index + 1,
+    cause: 'Field failure',
+    payout: 5000,
+    age,
+    vendorCovered: false,
+  }));
+  Plugin.onTick(state, 1);
+  assert.equal(state.resources.customerTrust, 69);
+});
+
+test('low and high trust modify production', async () => {
+  const { engine, state } = await setup();
+  state.multipliers.productionSpeed = 1;
+  state.resources.customerTrust = 20;
+  engine.emit('calculateProduction', state);
+  assert.equal(state.multipliers.productionSpeed, 0.75);
+  state.multipliers.productionSpeed = 1;
+  state.resources.customerTrust = 90;
+  engine.emit('calculateProduction', state);
+  assert.equal(state.multipliers.productionSpeed, 1.05);
+});
+
+test('warranty state survives a JSON save roundtrip', () => {
+  const state = warrantyState();
+  state.pluginData.warranty = {
+    nextClaimId: 2,
+    claims: [{ id: 1, cause: 'Inverter fault', payout: 10000, age: 0, vendorCovered: false }],
+    filed: 1,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 30,
+  };
+  const saved = createSaveData(state, { timestamp: 123 });
+  const restored = normalizeSaveData(JSON.parse(JSON.stringify(saved)), warrantyState());
+  assert.deepEqual(restored.pluginData.warranty, state.pluginData.warranty);
+});
+
+test('tick repairs a non-record warranty payload with defaults', async () => {
+  const { Plugin, state } = await setup(() => 1);
+  state.pluginData.warranty = [];
+
+  assert.doesNotThrow(() => Plugin.onTick(state, 1));
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 1,
+  });
+});
+
+test('render repairs malformed warranty claims and counters', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty = malformedWarranty();
+
+  let html;
+  assert.doesNotThrow(() => { html = engine.tabs.get('warranty').render(state); });
+
+  assert.match(html, /Open: <strong>0<\/strong>/);
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 0,
+  });
+});
+
+test('actions repair malformed warranty claims and counters', async () => {
+  const { engine, state } = await setup();
+  state.pluginData.warranty = malformedWarranty();
+
+  assert.equal(engine.runAction('warranty-honor', state, { claimId: 1 }), state);
+  assert.deepEqual(warrantySnapshot(state.pluginData.warranty), {
+    nextClaimId: 1,
+    claims: [],
+    filed: 0,
+    honored: 0,
+    denied: 0,
+    vendorWins: 0,
+    tick: 0,
+  });
+});

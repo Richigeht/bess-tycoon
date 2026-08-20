@@ -153,7 +153,7 @@ class Phase2ScaleUpPlugin {
       cost: { money: 150000, regulatoryCompliance: 250 },
       effect: function(state) {
         state.certifications.iso9001 = true;
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 25);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 25);
         state.resources.regulatoryCompliance = (state.resources.regulatoryCompliance || 0) + 100;
       },
       unlockCondition: function(state) { return state.batteries >= 5000; },
@@ -168,7 +168,7 @@ class Phase2ScaleUpPlugin {
       category: 'consulting',
       cost: { money: 500000 },
       effect: function(state) {
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 20);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 20);
         Phase2ScaleUpPlugin._mckinseyTimer = 1;
         Phase2ScaleUpPlugin._mckinseyStage = 0;
       },
@@ -184,7 +184,7 @@ class Phase2ScaleUpPlugin {
       cost: { money: 300000 },
       effect: function(state) {
         state.techDebt = Math.max(0, state.techDebt - 500);
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 10);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 10);
       },
       unlockCondition: function(state) { return state.techDebt >= 50; },
       oneTime: true,
@@ -211,11 +211,11 @@ class Phase2ScaleUpPlugin {
       cost: { money: 200000 },
       effect: function(state) {
         if (Math.random() < 0.1) {
-          state.resources.investorConfidence = Math.max(0, (state.resources.investorConfidence || 50) - 10);
+          state.resources.investorConfidence = Math.max(0, (state.resources.investorConfidence ?? 50) - 10);
           // backfire event added in onTick
           state.pluginData.prBackfire = true;
         } else {
-          state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 15);
+          state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 15);
         }
       },
       unlockCondition: function(state) { return state.batteries >= 2000; },
@@ -298,7 +298,7 @@ class Phase2ScaleUpPlugin {
       cost: { money: 100000 },
       effect: function(state) {
         state.pluginData.insurance_dno = true;
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 10);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 10);
       },
       unlockCondition: function(state) { return (state.resources.investorConfidence || 0) >= 40; },
       oneTime: true,
@@ -313,7 +313,7 @@ class Phase2ScaleUpPlugin {
       cost: { money: 30000 },
       effect: function(state) {
         state.resources.gridAccessTokens = (state.resources.gridAccessTokens || 0) + 1;
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 5);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 5);
         state.resources.lobbyingPoints = (state.resources.lobbyingPoints || 0) + 3;
       },
       unlockCondition: function(state) { return state.batteries >= 2000; },
@@ -341,7 +341,7 @@ class Phase2ScaleUpPlugin {
       category: 'tradeshows',
       cost: { money: 50000 },
       effect: function(state) {
-        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence || 50) + 20);
+        state.resources.investorConfidence = Math.min(100, (state.resources.investorConfidence ?? 50) + 20);
         state.resources.lobbyingPoints = (state.resources.lobbyingPoints || 0) + 5;
       },
       unlockCondition: function(state) { return state.batteries >= 5000; },
@@ -398,7 +398,7 @@ class Phase2ScaleUpPlugin {
       unlockCondition: function(gs) { return gs.batteries >= 1000; },
       render: function(gameState) {
         var compliance = (gameState.resources.regulatoryCompliance || 0);
-        var confidence = (gameState.resources.investorConfidence || 50);
+        var confidence = (gameState.resources.investorConfidence ?? 50);
         var certs = gameState.certifications || {};
         var certCount = Object.values(certs).filter(Boolean).length;
 
@@ -472,7 +472,7 @@ class Phase2ScaleUpPlugin {
 
     // Investor confidence affects production
     gameEngine.on('calculateProduction', function(state) {
-      var confidence = state.resources.investorConfidence || 50;
+      var confidence = state.resources.investorConfidence ?? 50;
       if (confidence < 30) {
         state.multipliers.productionSpeed *= 0.5;
       } else if (confidence >= 60 && confidence < 85) {
@@ -531,7 +531,7 @@ class Phase2ScaleUpPlugin {
       // 0.5% chance per tick a lobbyist gets caught doing crimes
       if (Math.random() < 0.005 * this._lobbyists) {
         gameState.resources.investorConfidence = Math.max(0,
-          (gameState.resources.investorConfidence || 50) - 5
+          (gameState.resources.investorConfidence ?? 50) - 5
         );
         gameState.events = [{
           text: "🏛️ One of your lobbyists got caught in a scandal! -5 investor confidence. Whoops.",
@@ -544,13 +544,13 @@ class Phase2ScaleUpPlugin {
     if (gameState.techDebt > 100) {
       var debtPenalty = Math.floor(gameState.techDebt / 200) * 0.1;
       gameState.resources.investorConfidence = Math.max(0,
-        (gameState.resources.investorConfidence || 50) - debtPenalty
+        (gameState.resources.investorConfidence ?? 50) - debtPenalty
       );
     }
 
     // === Clamp investor confidence ===
     gameState.resources.investorConfidence = Math.max(0, Math.min(100,
-      gameState.resources.investorConfidence || 50
+      gameState.resources.investorConfidence ?? 50
     ));
 
     // === INSURANCE PREMIUMS (ongoing costs) ===
@@ -600,7 +600,7 @@ class Phase2ScaleUpPlugin {
           time: Date.now()
         }, ...gameState.events.slice(0, 9)];
         gameState.resources.investorConfidence = Math.min(100,
-          (gameState.resources.investorConfidence || 50) + 5
+          (gameState.resources.investorConfidence ?? 50) + 5
         );
         this._mckinseyTimer = 0;
         this._mckinseyStage = 0;
@@ -651,7 +651,7 @@ class Phase2ScaleUpPlugin {
         if (Math.random() < 0.4) {
           // Pass the audit
           gs.resources.regulatoryCompliance = (gs.resources.regulatoryCompliance || 0) + 30;
-          gs.resources.investorConfidence = Math.min(100, (gs.resources.investorConfidence || 50) + 5);
+          gs.resources.investorConfidence = Math.min(100, (gs.resources.investorConfidence ?? 50) + 5);
           Phase2ScaleUpPlugin._auditsSurvived++;
           gs.events = [{ text: "📋 Surprise UL1973 Audit! You passed. +30 compliance, +5 investor confidence. Crisis averted!", time: Date.now() }, ...gs.events.slice(0, 9)];
         } else {
@@ -665,7 +665,7 @@ class Phase2ScaleUpPlugin {
     if (gameState.batteries >= 5000 && !this._competitorEventFired) {
       pool.push(function(gs) {
         Phase2ScaleUpPlugin._competitorEventFired = true;
-        gs.resources.investorConfidence = Math.max(0, (gs.resources.investorConfidence || 50) - 15);
+        gs.resources.investorConfidence = Math.max(0, (gs.resources.investorConfidence ?? 50) - 15);
         gs.events = [{ text: "🚨 Competitor Launch! Tesla announces Megapack 3. It's better than yours. -15 investor confidence.", time: Date.now() }, ...gs.events.slice(0, 9)];
       });
     }
@@ -689,7 +689,7 @@ class Phase2ScaleUpPlugin {
 
     // Investor board meeting
     pool.push(function(gs) {
-      var confidence = gs.resources.investorConfidence || 50;
+      var confidence = gs.resources.investorConfidence ?? 50;
       if (confidence < 40) {
         gs.resources.investorConfidence = Math.max(0, confidence - 5);
         gs.events = [{ text: "💼 Board Meeting: 'Where's the growth?' Investors are getting restless. -5 confidence.", time: Date.now() }, ...gs.events.slice(0, 9)];
@@ -742,14 +742,14 @@ class Phase2ScaleUpPlugin {
 
     // Certified Bureaucrat: 3 certifications
     if (certCount >= 3 && !gameState.achievements.find(function(a) { return a.id === 'certified-bureaucrat'; })) {
-      gameState.resources.investorConfidence = Math.min(100, (gameState.resources.investorConfidence || 50) + 10);
+      gameState.resources.investorConfidence = Math.min(100, (gameState.resources.investorConfidence ?? 50) + 10);
       gameState.achievements = [...gameState.achievements, { id: 'certified-bureaucrat', name: 'Certified Bureaucrat', description: "You've mastered the art of form-filling" }];
       gameState.events = [{ text: "🏆 Achievement: Certified Bureaucrat! +10 investor confidence.", time: Date.now() }, ...gameState.events.slice(0, 9)];
     }
 
     // Audit Survivor: 5 audits
     if (this._auditsSurvived >= 5 && !gameState.achievements.find(function(a) { return a.id === 'audit-survivor'; })) {
-      gameState.resources.investorConfidence = Math.min(100, (gameState.resources.investorConfidence || 50) + 50);
+      gameState.resources.investorConfidence = Math.min(100, (gameState.resources.investorConfidence ?? 50) + 50);
       gameState.achievements = [...gameState.achievements, { id: 'audit-survivor', name: 'Audit Survivor', description: "You've seen things..." }];
       gameState.events = [{ text: "🏆 Achievement: Audit Survivor! +50 investor confidence.", time: Date.now() }, ...gameState.events.slice(0, 9)];
     }
@@ -793,24 +793,20 @@ class Phase2ScaleUpPlugin {
 
   static onAfterLoad(saveData, gameState) {
     var d = saveData.pluginData && saveData.pluginData.phase2;
-    if (d) {
-      this._mckinseyTimer = d.mckinseyTimer || 0;
-      this._mckinseyStage = d.mckinseyStage || 0;
-      this._auditsSurvived = d.auditsSurvived || 0;
-      this._lobbyingSpent = d.lobbyingSpent || 0;
-      this._totalClaims = d.totalClaims || 0;
-      this._competitorEventFired = d.competitorEventFired || false;
-      this._unlockEventFired = d.unlockEventFired || false;
-      this._complianceOfficers = d.complianceOfficers || 0;
-      this._lobbyists = d.lobbyists || 0;
-      this._insurancePremiumMultiplier = d.insurancePremiumMultiplier || 1;
-    }
+    this._mckinseyTimer = d?.mckinseyTimer ?? 0;
+    this._mckinseyStage = d?.mckinseyStage ?? 0;
+    this._auditsSurvived = d?.auditsSurvived ?? 0;
+    this._lobbyingSpent = d?.lobbyingSpent ?? 0;
+    this._totalClaims = d?.totalClaims ?? 0;
+    this._competitorEventFired = d?.competitorEventFired ?? false;
+    this._unlockEventFired = d?.unlockEventFired ?? false;
+    this._complianceOfficers = d?.complianceOfficers ?? 0;
+    this._lobbyists = d?.lobbyists ?? 0;
+    this._insurancePremiumMultiplier = d?.insurancePremiumMultiplier ?? 1;
   }
 
   static cleanup() {
     console.log('[Phase2] Cleaning up...');
-    this._mckinseyTimer = 0;
-    this._mckinseyStage = 0;
   }
 }
 

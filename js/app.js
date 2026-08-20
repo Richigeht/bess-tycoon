@@ -1,7 +1,8 @@
 import { GameEngine, PluginRegistry } from '/js/engine.js';
-import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard } from '/js/dashboard.mjs';
+import { DASHBOARD_PANELS, DASHBOARD_SCENARIOS, PANEL_COLOR_CLASSES, scoreDashboard, submitDashboardScenario } from '/js/dashboard.mjs';
+import { createSaveData, normalizeSaveData, startAutosave } from '/js/save.mjs';
 
-const { useState, useEffect } = React;
+const { useState, useEffect, useRef } = React;
 
 // Lucide React icons (inline)
 const Battery = ({ size = 24, className = "" }) => (
@@ -177,33 +178,10 @@ async function loadPluginFiles() {
   PluginRegistry.loadAll(gameEngine, DEFAULT_GAME_STATE);
 }
 
-// === Save Data Migration ===
-function migrateSaveData(raw) {
-  if (raw.version === '2.0') return raw;
-  // Migrate from v1.0 / no-version flat format
-  return {
-    version: '2.0',
-    money: raw.money ?? 10000,
-    batteries: raw.batteries ?? 0,
-    batteriesPerSecond: raw.batteriesPerSecond ?? 0,
-    techDebt: raw.techDebt ?? 0,
-    coffee: raw.coffee ?? 0,
-    clickPower: raw.clickPower ?? 1,
-    upgrades: raw.upgrades ?? DEFAULT_GAME_STATE.upgrades,
-    events: raw.events ?? [],
-    achievements: raw.achievements ?? [],
-    grafanaUnlocked: raw.grafanaUnlocked ?? false,
-    metrics: raw.metrics ?? DEFAULT_GAME_STATE.metrics,
-    resources: raw.resources ?? {},
-    certifications: raw.certifications ?? {},
-    multipliers: raw.multipliers ?? { productionSpeed: 1, usSalesPrice: 1 },
-    pluginData: raw.pluginData ?? {},
-    timestamp: raw.timestamp,
-  };
-}
-
 const BESSTycoon = () => {
   const [gameState, setGameState] = useState({ ...DEFAULT_GAME_STATE });
+  const gameStateRef = useRef(gameState);
+  gameStateRef.current = gameState;
   const [activeTab, setActiveTab] = useState('production');
   const [lastSave, setLastSave] = useState(null);
   const [saveStatus, setSaveStatus] = useState('');
@@ -219,9 +197,17 @@ const BESSTycoon = () => {
       PluginRegistry.unload(pluginId, gameEngine);
     } else {
       PluginRegistry.disabledPlugins.delete(pluginId);
-      PluginRegistry.enable(pluginId, gameEngine);
+      PluginRegistry.enable(pluginId, gameEngine, gameState);
     }
     setPluginVersion(v => v + 1); // force re-render to reflect new state
+  };
+
+  const handlePluginAction = event => {
+    const button = event.target.closest('[data-game-action]');
+    if (!button) return;
+    setGameState(prev => gameEngine.runAction(button.dataset.gameAction, prev, {
+      claimId: Number(button.dataset.claimId),
+    }));
   };
 
   // Load saved game on mount
@@ -230,26 +216,21 @@ const BESSTycoon = () => {
   }, []);
 
   // Auto-save every 10 seconds
-  useEffect(() => {
-    const saveInterval = setInterval(() => {
-      saveGame(true);
-    }, 10000);
-    return () => clearInterval(saveInterval);
-  }, [gameState]);
+  useEffect(() => startAutosave(
+    () => gameStateRef.current,
+    state => saveGame(true, state),
+  ), []);
 
   // Save game using localStorage
-  const saveGame = (isAuto = false) => {
+  const saveGame = (isAuto = false, state = gameStateRef.current) => {
     try {
-      const saveData = {
-        ...gameState,
-        events: gameState.events.slice(0, 10),
-        version: '2.0',
-        timestamp: Date.now(),
-        pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
-      };
-      PluginRegistry.triggerHook('onBeforeSave', saveData);
+      const saveData = createSaveData(state, {
+        loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
+        disabled: [...PluginRegistry.disabledPlugins],
+      });
+      PluginRegistry.triggerPersistenceHook('onBeforeSave', saveData);
       localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
-      setLastSave(new Date());
+      if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       setSaveStatus(isAuto ? '💾 Auto-saved' : '✅ Game saved!');
       setTimeout(() => setSaveStatus(''), 2000);
     } catch (error) {
@@ -264,7 +245,7 @@ const BESSTycoon = () => {
       const saveString = localStorage.getItem('bess-tycoon-save');
       if (saveString) {
         const raw = JSON.parse(saveString);
-        const saveData = migrateSaveData(raw);
+        const saveData = normalizeSaveData(raw, DEFAULT_GAME_STATE);
         const newState = { ...DEFAULT_GAME_STATE };
         for (const key of Object.keys(DEFAULT_GAME_STATE)) {
           if (saveData[key] !== undefined) {
@@ -275,10 +256,10 @@ const BESSTycoon = () => {
           ...newState,
           events: [{ text: '📁 Game loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
         }));
-        PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
-        // Re-check plugin unlock conditions with restored state
+        PluginRegistry.disabledPlugins = new Set(saveData.pluginsDisabled);
         PluginRegistry.loadAll(gameEngine, newState);
-        setLastSave(new Date(saveData.timestamp));
+        PluginRegistry.triggerPersistenceHook('onAfterLoad', saveData, newState);
+        if (Number.isFinite(saveData.timestamp)) setLastSave(new Date(saveData.timestamp));
       }
     } catch (error) {
       console.error('Load failed:', error);
@@ -299,14 +280,11 @@ const BESSTycoon = () => {
 
   // Export save
   const exportSave = () => {
-    const saveData = {
-      ...gameState,
-      events: gameState.events.slice(0, 10),
-      version: '2.0',
-      timestamp: Date.now(),
-      pluginsLoaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
-    };
-    PluginRegistry.triggerHook('onBeforeSave', saveData);
+    const saveData = createSaveData(gameStateRef.current, {
+      loaded: PluginRegistry.loadedPlugins.map(p => p.manifest.id),
+      disabled: [...PluginRegistry.disabledPlugins],
+    });
+    PluginRegistry.triggerPersistenceHook('onBeforeSave', saveData);
     const saveString = JSON.stringify(saveData);
     const blob = new Blob([saveString], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -329,10 +307,7 @@ const BESSTycoon = () => {
     reader.onload = (e) => {
       try {
         const raw = JSON.parse(e.target.result);
-        if (typeof raw.money !== 'number') {
-          throw new Error('Invalid save file');
-        }
-        const saveData = migrateSaveData(raw);
+        const saveData = normalizeSaveData(raw, DEFAULT_GAME_STATE);
         const newState = { ...DEFAULT_GAME_STATE };
         for (const key of Object.keys(DEFAULT_GAME_STATE)) {
           if (saveData[key] !== undefined) {
@@ -343,7 +318,9 @@ const BESSTycoon = () => {
           ...newState,
           events: [{ text: '📥 Save file loaded successfully!', time: Date.now() }, ...(newState.events || []).slice(0, 9)],
         }));
-        PluginRegistry.triggerHook('onAfterLoad', saveData, newState);
+        PluginRegistry.disabledPlugins = new Set(saveData.pluginsDisabled);
+        PluginRegistry.loadAll(gameEngine, newState);
+        PluginRegistry.triggerPersistenceHook('onAfterLoad', saveData, newState);
         localStorage.setItem('bess-tycoon-save', JSON.stringify(saveData));
         setSaveStatus('✅ Save imported!');
         setShowExportImport(false);
@@ -560,27 +537,8 @@ const BESSTycoon = () => {
     }));
   };
 
-  const submitDashboard = (scenario) => {
-    setGameState(prev => {
-      const result = scoreDashboard(scenario, prev.dashboard);
-      const resources = { ...prev.resources };
-      if (result.passed) {
-        if (resources.regulatoryCompliance !== undefined) resources.regulatoryCompliance += 15;
-        if (resources.investorConfidence !== undefined) resources.investorConfidence += 5;
-      }
-      return {
-        ...prev,
-        money: result.passed ? prev.money + scenario.reward : prev.money,
-        techDebt: result.passed ? Math.max(0, prev.techDebt - 5) : prev.techDebt + 3,
-        resources,
-        events: [{
-          text: result.passed
-            ? `📊 ${scenario.name} passed (${result.score}/100). Dashboard accepted.`
-            : `📉 ${scenario.name} failed (${result.score}/100). Missing: ${result.missing.join(', ') || 'better thresholds'}.`,
-          time: Date.now(),
-        }, ...prev.events.slice(0, 9)],
-      };
-    });
+  const submitDashboard = scenario => {
+    setGameState(prev => submitDashboardScenario(prev, scenario).state);
   };
 
   const upgradesData = [
@@ -999,6 +957,7 @@ const BESSTycoon = () => {
                   <div className="grid md:grid-cols-3 gap-3">
                     {DASHBOARD_SCENARIOS.map(scenario => {
                       const result = scoreDashboard(scenario, gameState.dashboard);
+                      const claimed = (gameState.pluginData.dashboardClaims || []).includes(scenario.id);
                       return (
                         <div key={scenario.id} className="bg-slate-900 p-4 rounded border border-cyan-500/30">
                           <div className="flex items-start justify-between gap-2 mb-2">
@@ -1012,9 +971,10 @@ const BESSTycoon = () => {
                           </div>
                           <button
                             onClick={() => submitDashboard(scenario)}
-                            className="w-full px-3 py-2 rounded bg-cyan-600 hover:bg-cyan-500 text-sm font-semibold transition-all"
+                            disabled={claimed}
+                            className="w-full px-3 py-2 rounded bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-700 disabled:text-gray-400 text-sm font-semibold transition-all"
                           >
-                            Submit Audit
+                            {claimed ? 'Completed' : 'Submit Audit'}
                           </button>
                         </div>
                       );
@@ -1093,7 +1053,7 @@ const BESSTycoon = () => {
                   {Array.from(PluginRegistry.plugins.values()).map(plugin => {
                     const manifest = plugin.manifest;
                     const isLoaded = PluginRegistry.loadedPlugins.includes(plugin);
-                    const canUnlock = manifest.unlockCondition ? manifest.unlockCondition(gameState) : true;
+                    const canEnable = PluginRegistry.canLoad(plugin, gameState);
                     return (
                       <div key={manifest.id} className={`p-4 rounded-lg border ${isLoaded ? 'bg-slate-900 border-green-500/30' : 'bg-slate-900/50 border-slate-700'}`}>
                         <div className="flex justify-between items-start">
@@ -1103,10 +1063,10 @@ const BESSTycoon = () => {
                             {manifest.author && <div className="text-xs text-gray-500 mt-1">By: {manifest.author}</div>}
                           </div>
                           <div className="flex items-center gap-2">
-                            <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canUnlock ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
-                              {isLoaded ? 'Loaded' : canUnlock ? 'Available' : 'Locked'}
+                            <div className={`px-2 py-1 rounded text-xs font-semibold ${isLoaded ? 'bg-green-900 text-green-400' : canEnable ? 'bg-yellow-900 text-yellow-400' : 'bg-slate-700 text-gray-400'}`}>
+                              {isLoaded ? 'Loaded' : canEnable ? 'Available' : 'Locked'}
                             </div>
-                            {(isLoaded || canUnlock) && (
+                            {(isLoaded || canEnable) && (
                               <button
                                 onClick={() => togglePlugin(manifest.id)}
                                 className={`px-3 py-1 rounded text-xs font-semibold transition-colors ${isLoaded ? 'bg-red-900/60 text-red-300 hover:bg-red-800' : 'bg-purple-900/60 text-purple-300 hover:bg-purple-800'}`}
@@ -1145,7 +1105,12 @@ const BESSTycoon = () => {
         {!['production', 'monitoring', 'plugins'].includes(activeTab) && (() => {
           const tab = gameEngine.tabs.get(activeTab);
           if (tab && tab.render) {
-            return <div dangerouslySetInnerHTML={{ __html: tab.render(gameState) }} />;
+            return (
+              <div
+                onClick={handlePluginAction}
+                dangerouslySetInnerHTML={{ __html: tab.render(gameState) }}
+              />
+            );
           }
           return null;
         })()}

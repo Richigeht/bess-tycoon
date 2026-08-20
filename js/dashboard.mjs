@@ -27,5 +27,54 @@ export function scoreDashboard(scenario, panels) {
   const thresholdHits = panels.filter(p => scenario.needs.includes(p.metric) && p.threshold !== undefined).length;
   const score = Math.min(100, hits.length * 25 + thresholdHits * 8 + Math.min(10, panels.length));
   const missing = scenario.needs.filter(metric => !metrics.has(metric));
-  return { score, missing, passed: score >= 75 && missing.length === 0 };
+  const missingThresholds = scenario.needs.filter(metric => {
+    const panel = panels.find(candidate => candidate.metric === metric);
+    return panel && panel.threshold === undefined;
+  });
+  return {
+    score,
+    missing,
+    missingThresholds,
+    passed: score >= 75 && missing.length === 0 && missingThresholds.length === 0,
+  };
+}
+
+export function submitDashboardScenario(state, scenario, now = Date.now()) {
+  const result = scoreDashboard(scenario, state.dashboard);
+  const claims = state.pluginData.dashboardClaims || [];
+  if (claims.includes(scenario.id)) return { state, result, rewarded: false };
+
+  const event = {
+    text: result.passed
+      ? `📊 ${scenario.name} passed (${result.score}/100). Dashboard accepted.`
+      : `📉 ${scenario.name} failed (${result.score}/100). Missing: ${result.missing.join(', ') || 'better thresholds'}.`,
+    time: now,
+  };
+  if (!result.passed) {
+    return {
+      state: {
+        ...state,
+        techDebt: state.techDebt + 3,
+        events: [event, ...state.events].slice(0, 10),
+      },
+      result,
+      rewarded: false,
+    };
+  }
+
+  const resources = { ...state.resources };
+  if (resources.regulatoryCompliance !== undefined) resources.regulatoryCompliance += 15;
+  if (resources.investorConfidence !== undefined) resources.investorConfidence += 5;
+  return {
+    state: {
+      ...state,
+      money: state.money + scenario.reward,
+      techDebt: Math.max(0, state.techDebt - 5),
+      resources,
+      pluginData: { ...state.pluginData, dashboardClaims: [...claims, scenario.id] },
+      events: [event, ...state.events].slice(0, 10),
+    },
+    result,
+    rewarded: true,
+  };
 }

@@ -1,7 +1,7 @@
 # Phase 3: The Grid Integration Wars
 ## "Your batteries are now financial instruments. Congratulations?"
 
-**Unlock Condition:** 100,000 batteries produced + Connected to 3+ power grids  
+**Unlock Condition:** 100,000 batteries produced + 3 Phase 2 grid-access tokens
 **Theme:** Energy trading, algorithmic optimization, and the insanity of real-time markets  
 **Tone:** High-frequency trading meets power engineering chaos
 
